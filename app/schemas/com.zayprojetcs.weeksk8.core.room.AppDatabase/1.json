@@ -1,0 +1,228 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "012e1163b911229633c96806df9a508f",
+    "entities": [
+      {
+        "tableName": "R_Day",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idDay` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `status` TEXT NOT NULL, `createDate` INTEGER NOT NULL, `startDate` INTEGER NOT NULL, `closeDate` INTEGER NOT NULL, `typeActivityDay` INTEGER NOT NULL, `countRound` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "idDay",
+            "columnName": "idDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createDate",
+            "columnName": "createDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "closeDate",
+            "columnName": "closeDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "typeActivityDay",
+            "columnName": "typeActivityDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countRound",
+            "columnName": "countRound",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "idDay"
+          ]
+        }
+      },
+      {
+        "tableName": "R_RoundTrick",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idRoundTrick` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `idOwnerDay` INTEGER NOT NULL, `idOwnerTrick` INTEGER, `status` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `round` INTEGER NOT NULL, `countTriedSuccess` INTEGER NOT NULL, `countTriedFail` INTEGER NOT NULL, FOREIGN KEY(`idOwnerDay`) REFERENCES `R_Day`(`idDay`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`idOwnerTrick`) REFERENCES `R_Trick`(`idTrick`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "idRoundTrick",
+            "columnName": "idRoundTrick",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idOwnerDay",
+            "columnName": "idOwnerDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idOwnerTrick",
+            "columnName": "idOwnerTrick",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "round",
+            "columnName": "round",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countTriedSuccess",
+            "columnName": "countTriedSuccess",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countTriedFail",
+            "columnName": "countTriedFail",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "idRoundTrick"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "R_Day",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "idOwnerDay"
+            ],
+            "referencedColumns": [
+              "idDay"
+            ]
+          },
+          {
+            "table": "R_Trick",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "idOwnerTrick"
+            ],
+            "referencedColumns": [
+              "idTrick"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "R_Trick",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idTrick` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `realName` TEXT NOT NULL, `akaName` TEXT NOT NULL, `difficulty` REAL NOT NULL, `typeTrick` TEXT NOT NULL, `status` TEXT NOT NULL, `startDateTrying` INTEGER NOT NULL, `dateUnlock` INTEGER NOT NULL, `countTriedAttempts` INTEGER NOT NULL, `countUnlockTriedSuccess` INTEGER NOT NULL, `countUnlockTriedFail` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "idTrick",
+            "columnName": "idTrick",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "realName",
+            "columnName": "realName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "akaName",
+            "columnName": "akaName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "difficulty",
+            "columnName": "difficulty",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "typeTrick",
+            "columnName": "typeTrick",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDateTrying",
+            "columnName": "startDateTrying",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateUnlock",
+            "columnName": "dateUnlock",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countTriedAttempts",
+            "columnName": "countTriedAttempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countUnlockTriedSuccess",
+            "columnName": "countUnlockTriedSuccess",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countUnlockTriedFail",
+            "columnName": "countUnlockTriedFail",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "idTrick"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '012e1163b911229633c96806df9a508f')"
+    ]
+  }
+}
