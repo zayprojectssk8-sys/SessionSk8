@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.LinkDeviceSmartWatchScreen
 import com.zayprojetcs.weeksk8.screens.create_day_skate.CreateDaySkateScreen
+import com.zayprojetcs.weeksk8.screens.create_session_skate.CreateSessionSkateScreen
 import com.zayprojetcs.weeksk8.screens.dashboard.DashboardScreen
 import com.zayprojetcs.weeksk8.screens.home_nav.routes.HomeNavigationRoutes
 import com.zayprojetcs.weeksk8.screens.menu.MenuScreen
@@ -32,10 +33,20 @@ fun HomeNavigationScreen(viewModel: HomeNavigationViewModel = viewModel()) {
     NavHost(navController = navController, startDestination = HomeNavigationRoutes.Menu) {
 
         composable<HomeNavigationRoutes.Menu> {
-            MenuScreen(onNavigateLinkSmartWatch = {
-                navController.navigate(HomeNavigationRoutes.LinkDeviceSmartWatch)
+            MenuScreen(
+                onNavigateLinkSmartWatch = {
+                    navController.navigate(HomeNavigationRoutes.LinkDeviceSmartWatch)
+                },
+                onNavigateCreateSession = {
+                    navController.navigate(HomeNavigationRoutes.CreateSessionSkate)
+                })
+        }
+        composable<HomeNavigationRoutes.CreateSessionSkate> {
+            CreateSessionSkateScreen(onNavigateBackPress = {
+                navController.popBackStack()
             })
         }
+
         composable<HomeNavigationRoutes.LinkDeviceSmartWatch> {
             LinkDeviceSmartWatchScreen(onFinished = {
                 navController.popBackStack()

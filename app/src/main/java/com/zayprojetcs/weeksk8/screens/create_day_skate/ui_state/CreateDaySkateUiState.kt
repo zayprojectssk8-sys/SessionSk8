@@ -1,6 +1,6 @@
 package com.zayprojetcs.weeksk8.screens.create_day_skate.ui_state
 
-import com.zayprojetcs.weeksk8.core.model.TFMTrick
+import com.zaysk8.core.model.TFMTrick
 
 sealed class CreateDaySkateUiState {
 

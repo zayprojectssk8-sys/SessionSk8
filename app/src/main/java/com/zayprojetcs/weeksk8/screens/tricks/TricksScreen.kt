@@ -30,8 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zayprojetcs.weeksk8.core.model.TFMTrick
-import com.zayprojetcs.weeksk8.core.model.TypeTrick
+import com.zaysk8.core.model.TFMTrick
+import com.zaysk8.core.model.TypeTrick
 import com.zayprojetcs.weeksk8.ui.customs.ScaffoldCustom
 
 @Composable

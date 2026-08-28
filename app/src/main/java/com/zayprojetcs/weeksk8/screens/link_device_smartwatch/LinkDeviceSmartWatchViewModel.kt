@@ -17,11 +17,13 @@ import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.CapabilityInfo
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
-import com.zayprojetcs.weeksk8.core.data_store.WearablePreferences.Companion.wearablePreferencesInstance
+import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager.Companion.dataStoreAppManager
 import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.ui_state.LinkDeviceSmartWatchUiState
 import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.ui_state.model.LinkDeviceSmartWatchUiStateModel
 import com.zayprojetcs.weeksk8.utils.WearableDetector
 import com.zayprojetcs.weeksk8.utils.isBluetoothOff
+import com.zaysk8.core.utils.CAPABILITY_CLIENT_NAME
+import com.zaysk8.core.utils.MESSAGE_PATH_WEAR_TO_PHONE_COMMUNICATION_ESTABLISHED
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +43,6 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
 
     private var messageClient: MessageClient? = null
     private var capabilityClient: CapabilityClient? = null
-    private val capabilityName = "wear_app_installed"
 
 
     fun loadEvent(event: LinkDeviceSmartWatchUiState) {
@@ -103,7 +104,7 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
             it.addListener(this)
         }
         capabilityClient = Wearable.getCapabilityClient(getApplication()).also {
-            it.addListener(this, capabilityName)
+            it.addListener(this, CAPABILITY_CLIENT_NAME)
         }
 
         // Registrar BroadcastReceiver (para cuando apagas el Bluetooth en el celular)
@@ -160,7 +161,7 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
 
                 if (device.nodeId != null) {
                     // 1. Guardar la vinculación persistentemente
-                    (getApplication() as? Context)?.wearablePreferencesInstance()
+                    (getApplication() as? Context)?.dataStoreAppManager()
                         ?.saveDeviceConnectBluetooth(device)
                 }
             }
@@ -206,7 +207,7 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
     // Paso 3: Listener en tiempo real. Se gatilla cuando el reloj responde
     override fun onMessageReceived(messageEvent: com.google.android.gms.wearable.MessageEvent) {
         Log.wtf(javaClass.simpleName, "onMessageReceived $messageEvent")
-        if (messageEvent.path == "/wear_app_connected") {
+        if (messageEvent.path == MESSAGE_PATH_WEAR_TO_PHONE_COMMUNICATION_ESTABLISHED) {
 
             val currentNode =
                 linkDeviceSmartWatchUiState.value.currentDevice // El dispositivo que estabas vinculando
@@ -224,7 +225,7 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
             viewModelScope.launch {
                 if (currentNode.nodeId != null) {
                     // 1. Guardar la vinculación persistentemente
-                    (getApplication() as? Context)?.wearablePreferencesInstance()
+                    (getApplication() as? Context)?.dataStoreAppManager()
                         ?.saveDeviceConnectBluetooth(currentNode)
                 }
             }

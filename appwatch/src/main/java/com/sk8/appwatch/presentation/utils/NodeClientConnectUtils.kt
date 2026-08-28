@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
+import com.zaysk8.core.utils.MESSAGE_PATH_WEAR_TO_PHONE_COMMUNICATION_ESTABLISHED
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -20,7 +21,7 @@ suspend fun Context.sendConnectionHandshakeToPhone() {
         nodes.forEach { node ->
             messageClient.sendMessage(
                 node.id,
-                "/wear_app_connected",
+                MESSAGE_PATH_WEAR_TO_PHONE_COMMUNICATION_ESTABLISHED,
                 "ACK".toByteArray()
             ).await()
         }

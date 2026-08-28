@@ -38,6 +38,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
@@ -48,6 +50,8 @@ dependencies {
     implementation(libs.androidx.wear.tooling.preview)
     implementation(libs.compose.ui.tooling)
     implementation(libs.play.services.wearable)
+    implementation(libs.androidx.compose.material.icons.extended)
+
 
     implementation(libs.kotlinx.coroutines.play.services)
 
@@ -67,6 +71,9 @@ dependencies {
     implementation("androidx.concurrent:concurrent-futures-ktx:1.3.0")
 
     implementation("androidx.lifecycle:lifecycle-service:2.8.7")
+
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
+
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

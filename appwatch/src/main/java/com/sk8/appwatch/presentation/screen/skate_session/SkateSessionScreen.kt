@@ -18,7 +18,11 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Skateboarding
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
@@ -26,6 +30,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.*
 import com.sk8.appwatch.presentation.screen.skate_session.ui_state.SkateSessionUiStateModel
+import com.sk8.appwatch.presentation.utils.getRequiredWearOsPermissionsGranted
 
 @Composable
 fun WearMetricsSessionScreen(
@@ -216,16 +221,16 @@ private fun formatSeconds(seconds: Long): String {
 
 @Composable
 fun SkateSessionScreen(
+    nodeId: String? = null,
     viewModel: SkateSessionViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allGranted = permissions.values.all { it }
-        if (allGranted) {
-            viewModel.onToggleSession()
+    val context = LocalContext.current
+
+    LaunchedEffect(key1 = Unit) {
+        if (nodeId != null) {
+            viewModel.loadCompleteLinkPhone(nodeId = nodeId)
         }
     }
 
@@ -239,16 +244,36 @@ fun SkateSessionScreen(
         if (uiState.isTracking) {
             WearMetricsSessionScreen(metrics = uiState)
         } else {
-            Button(
-                onClick = {
-                    if (viewModel.areStandardPermissionsGranted()) {
-                        viewModel.onToggleSession()
-                    } else {
-                        permissionLauncher.launch(viewModel.getRequiredSkatePermissions())
-                    }
-                }) {
-                Text("Iniciar sesión skate")
-            }
+            WaitScreen()
         }
+    }
+}
+
+@Composable
+fun WaitScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Skateboarding,
+            contentDescription = "Esperando Session Skate",
+            tint = MaterialTheme.colors.primary,
+            modifier = Modifier
+                .size(50.dp)
+                .padding(bottom = 4.dp)
+        )
+
+        Text(
+            text = "Esperando Session Skate",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colors.onBackground,
+            textAlign = TextAlign.Center
+        )
+
     }
 }

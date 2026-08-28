@@ -2,22 +2,20 @@ package com.zayprojetcs.weeksk8.screens.menu
 
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.zayprojetcs.weeksk8.core.data_store.WearablePreferences.Companion.wearablePreferencesInstance
+import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager.Companion.dataStoreAppManager
 import com.zayprojetcs.weeksk8.screens.menu.ui_state.MenuUiState
 import com.zayprojetcs.weeksk8.screens.menu.ui_state.model.MenuUiStateModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
-    val dataStore by lazy { application.wearablePreferencesInstance() }
+    val dataStore by lazy { application.dataStoreAppManager() }
 
     private val _menuUiState = MutableStateFlow(MenuUiStateModel())
     val menuUiState: StateFlow<MenuUiStateModel> = combine(

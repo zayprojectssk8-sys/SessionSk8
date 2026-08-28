@@ -1,4 +1,5 @@
-package com.zayprojetcs.weeksk8.core.model
+package com.zaysk8.core.model
+
 
 enum class TypeStanceTrick(
     var typeStanceName: String

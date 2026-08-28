@@ -1,6 +1,5 @@
 package com.zayprojetcs.weeksk8.screens.create_day_skate
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,8 +7,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Save
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,9 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.zayprojetcs.weeksk8.core.model.TFMTrick
-import com.zayprojetcs.weeksk8.core.model.TypeStanceTrick
-import com.zayprojetcs.weeksk8.core.model.TypeTrick
+import com.zaysk8.core.model.TFMTrick
+import com.zaysk8.core.model.TypeStanceTrick
+import com.zaysk8.core.model.TypeTrick
 import com.zayprojetcs.weeksk8.core.room.model.TypeActivityDay
 import com.zayprojetcs.weeksk8.screens.create_day_skate.create_review_floor_trick.CreateReviewFloorTrickScreen
 import com.zayprojetcs.weeksk8.screens.create_day_skate.create_review_unloked_slides_grind.CreateReviewAndUnlockedFloorTrickScreen
@@ -251,14 +248,14 @@ fun SelectUnlockTrick(
 
     }
 
-    SelectTrickScreen(
+    /*SelectTrickScreen(
         trickList = trickList,
         limitSelected = limitSelected,
         availableStances = availableStances,
         selectedType = selectedStanceType,
         onTypeSelected = { selectedStanceType = it },
         onSendSelection = onSendSelection
-    )
+    )*/
 
 }
 

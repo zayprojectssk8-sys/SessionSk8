@@ -77,7 +77,7 @@ fun OutlineCardIInfoCustom(
                 // Icono de mensaje de información
                 Surface(
                     shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(40.dp)
                 ) {

@@ -3,14 +3,15 @@ package com.zayprojetcs.weeksk8.utils
 import android.Manifest
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import androidx.annotation.RequiresPermission
 import android.content.Intent
-import android.net.Uri
+import androidx.annotation.RequiresPermission
+import androidx.core.net.toUri
 import androidx.wear.remote.interactions.RemoteActivityHelper
 import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
+import com.zaysk8.core.utils.CAPABILITY_CLIENT_NAME
+import com.zaysk8.core.utils.SOURCE_NODE_ID
 import kotlinx.coroutines.tasks.await
-import androidx.core.net.toUri
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -46,7 +47,7 @@ class WearableDetector(private val context: Context) {
         }
 
         val nodesWithApp = try {
-            capabilityClient.getCapability("wear_app_installed", CapabilityClient.FILTER_REACHABLE)
+            capabilityClient.getCapability(CAPABILITY_CLIENT_NAME, CapabilityClient.FILTER_REACHABLE)
                 .await().nodes.map { it.id }.toSet()
         } catch (_: Exception) {
             emptySet()
@@ -116,6 +117,7 @@ class WearableDetector(private val context: Context) {
         val intent = Intent(Intent.ACTION_VIEW).apply {
             data = "market://details?id=${context.packageName}".toUri()
             setPackage("com.android.vending")
+            putExtra(SOURCE_NODE_ID, nodeId)
         }
         remoteActivityHelper.startRemoteActivity(intent, nodeId)
     }
@@ -129,7 +131,7 @@ class WearableDetector(private val context: Context) {
         val testPackageName = "com.strava" // O "com.spotify.music"
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("market://details?id=$testPackageName")
+            data = "market://details?id=$testPackageName".toUri()
             setPackage("com.android.vending")
         }
         remoteActivityHelper.startRemoteActivity(intent, nodeId)

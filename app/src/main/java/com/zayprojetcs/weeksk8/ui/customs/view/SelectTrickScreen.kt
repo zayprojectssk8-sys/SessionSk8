@@ -2,7 +2,6 @@ package com.zayprojetcs.weeksk8.ui.customs.view
 
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,20 +48,45 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.zayprojetcs.weeksk8.core.model.TFMTrick
-import com.zayprojetcs.weeksk8.core.model.TypeStanceTrick
+import com.zaysk8.core.model.TFMTrick
+import com.zaysk8.core.model.TypeStanceTrick
 import com.zayprojetcs.weeksk8.ui.customs.LoadTitleSectionCustom
+import com.zaysk8.core.model.TypeTrick
 
 @Composable
 fun SelectTrickScreen(
-    trickList: List<TFMTrick>,
+    trickListSelected: List<TFMTrick>,
     availableStances: List<TypeStanceTrick>,
     limitSelected: Int = 0,
-    selectedType: TypeStanceTrick,
-    onTypeSelected: (TypeStanceTrick) -> Unit,
     onSendSelection: (List<TFMTrick>) -> Unit
 ) {
     val selectedTricks = rememberSaveable { mutableStateListOf<TFMTrick>() }
+
+    LaunchedEffect(Unit) {
+        selectedTricks.clear()
+        selectedTricks.addAll(trickListSelected)
+    }
+    val listTricksAll =
+        TypeTrick.FLOOR.trickList + TypeTrick.GRIND.trickList + TypeTrick.SLIDE.trickList + TypeTrick.GRABS.trickList + TypeTrick.BALANCE.trickList
+
+    var selectedStanceType by remember { mutableStateOf(TypeStanceTrick.NORMAL) }
+
+    val trickList = remember( selectedStanceType) {
+        listTricksAll.map { trick ->
+            val prefix = when (selectedStanceType) {
+                TypeStanceTrick.NOLLIE -> "Nollie "
+                TypeStanceTrick.FAKIE -> "Fakie "
+                TypeStanceTrick.SWITCH -> "Switch "
+                TypeStanceTrick.NORMAL -> ""
+            }
+
+            trick.copy(
+                realName = "$prefix${trick.realName}",
+                akaName = "$prefix${trick.akaName}"
+            )
+        }
+    }
+
 
     var disabledSelect by rememberSaveable { mutableStateOf(false) }
 
@@ -97,6 +124,31 @@ fun SelectTrickScreen(
 
         LoadTitleSectionCustom("SELECCIÓN DE TRUCOS")
 
+        Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Solo puedes seleccionar hasta $limitSelected trucos para esta sesión (1 por cada ronda calculada). Si deseas agregar más trucos, aumenta la duración de tu sesión.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
         Spacer(modifier = Modifier.height(20.dp))
 
         OutlinedTextField(
@@ -127,8 +179,8 @@ fun SelectTrickScreen(
 
         TrickStanceFilterChips(
             availableStances = availableStances,
-            selectedType = selectedType,
-            onTypeSelected = onTypeSelected,
+            selectedType = selectedStanceType,
+            onTypeSelected = { selectedStanceType = it },
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -141,11 +193,13 @@ fun SelectTrickScreen(
             items(filteredList) { trick ->
                 TrickSelectionItem(
                     trick = trick,
-                    disabledSelect = disabledSelect,
+                    disabledSelect = false,
                     isSelected = selectedTricks.contains(trick),
                     onCheckedChange = { isChecked ->
-                        if (isChecked) selectedTricks.add(trick)
+
+                        if (isChecked && !disabledSelect) selectedTricks.add(trick)
                         else selectedTricks.remove(trick)
+
                     }
                 )
             }

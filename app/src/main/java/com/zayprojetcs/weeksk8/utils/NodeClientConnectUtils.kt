@@ -1,17 +1,14 @@
 package com.zayprojetcs.weeksk8.utils
 
 import android.content.Context
-import android.util.Log
-import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Wearable
-import kotlinx.coroutines.Dispatchers
+import com.zaysk8.core.utils.MESSAGE_PATH_PHONE_TO_WEAR_OPEN_APP
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 
 suspend fun Context.sendConnectionPhoneToWatch(nodeId: String) {
     try {
         Wearable.getMessageClient(this)
-            .sendMessage(nodeId, "/open_app", byteArrayOf())
+            .sendMessage(nodeId, MESSAGE_PATH_PHONE_TO_WEAR_OPEN_APP, byteArrayOf())
             .await()
     } catch (e: Exception) {
         e.printStackTrace()
