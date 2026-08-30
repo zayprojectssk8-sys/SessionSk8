@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.map
 class DataStoreWatchManager(private val context: Context) {
 
     companion object {
-        fun Context.dataStoreWatchInstance() = DataStoreWatchManager(this)
         val PAIRED_PHONE_DEVICE_KEY = stringPreferencesKey("paired_phone_device")
     }
 

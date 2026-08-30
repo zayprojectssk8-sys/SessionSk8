@@ -1,31 +1,43 @@
 package com.zayprojetcs.weeksk8.screens.create_session_skate
 
 import android.app.Application
-import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager.Companion.dataStoreAppManager
+import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager
+import com.zayprojetcs.weeksk8.core.room.model.RoomSession
+import com.zayprojetcs.weeksk8.core.room.model.RoomTrick
+import com.zayprojetcs.weeksk8.core.room.model.StatusSession
+import com.zayprojetcs.weeksk8.core.room.model.StatusTrick
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetListTrickFlow
+import com.zayprojetcs.weeksk8.core.room.repo.repoRoomInsertListTrick
+import com.zayprojetcs.weeksk8.core.room.repo.repoRoomInsertSession
 import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.CreateSessionSkateUiState
 import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.CreateSessionSkateUiStateModel
 import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.TrickSelectionMode
 import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.TypeConfig
+import com.zaysk8.core.utils.OperationResult
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class CreateSessionSkateViewModel(application: Application) : AndroidViewModel(application) {
+    val dataStoreAppManager by lazy { DataStoreAppManager(application) }
 
+    private val _operationResult = MutableSharedFlow<OperationResult<Boolean>>()
+    val operationResult: SharedFlow<OperationResult<Boolean>> = _operationResult.asSharedFlow()
 
     private val _createSessionSkateUiStateModel = MutableStateFlow(CreateSessionSkateUiStateModel())
 
-
     val createSessionSkateUiStateModel: StateFlow<CreateSessionSkateUiStateModel> = combine(
         application.repoRoomGetListTrickFlow(),
-        application.dataStoreAppManager().deviceConnectBluetooth,
+        dataStoreAppManager.deviceConnectBluetooth,
         _createSessionSkateUiStateModel
     ) { tricksUnlock, deviceWatch, createSessionSkateUiStateModel ->
 
@@ -58,7 +70,54 @@ class CreateSessionSkateViewModel(application: Application) : AndroidViewModel(a
             CreateSessionSkateUiState.OnValidateNavigationBackPress -> validateNavigationBackPress()
             is CreateSessionSkateUiState.OnTrickDistributionMode -> event.setTrickDistributionMode()
             is CreateSessionSkateUiState.OnTrickOrderMode -> event.setTrickOrderMode()
+            CreateSessionSkateUiState.OnFinishCreateSession -> onFinishCreateSession()
         }
+    }
+
+    fun onFinishCreateSession() {
+        viewModelScope.launch {
+            _operationResult.emit(OperationResult.Loading)
+
+            createSessionSkateUiStateModel.value.apply {
+
+                val roomSession = RoomSession(
+                    durationSessionMinutes = durationSessionMinutes ?: 0,
+                    warmupMinutes = warmupMinutes,
+                    cooldownMinutes = cooldownMinutes,
+                    calculatedRounds = calculatedRounds,
+                    totalSkateTime = totalSkateTime,
+                    totalRestTime = totalRestTime,
+                    marginMinutes = marginMinutes,
+                    selectedCustomTricksCount = selectedCustomTricksCount,
+                    unlockedTricksCount = unlockedTricksCount,
+                    trickTrackingMode = trickTrackingMode.id,
+                    trickOrderMode = trickOrderMode.id,
+                    trickDistributionMode = trickDistributionMode.id,
+                    createDate = System.currentTimeMillis(),
+                    status = StatusSession.CREATED.status,
+                )
+
+                val resultSession = application.repoRoomInsertSession(roomSession = roomSession)
+                if (selectedTrickList.isNotEmpty()) {
+                    if (resultSession is OperationResult.Success) {
+                        val roomTricks = selectedTrickList.map {
+                            RoomTrick(
+                                realName = it.realName,
+                                akaName = it.akaName,
+                                difficulty = it.getRealDifficulty(),
+                                typeTrick = it.typeTrick,
+                                status = StatusTrick.TRYING.status,
+                            )
+                        }
+                        val resultTricks = application.repoRoomInsertListTrick(roomTricks)
+                        _operationResult.emit(resultTricks)
+                    }
+
+                } else _operationResult.emit(resultSession)
+
+            }
+        }
+
     }
 
     private fun CreateSessionSkateUiState.OnTrickOrderMode.setTrickOrderMode() {

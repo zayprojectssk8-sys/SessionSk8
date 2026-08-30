@@ -13,7 +13,6 @@ import kotlinx.serialization.json.Json
 class DataStoreAppManager(private val context: Context) {
 
     companion object {
-        fun Context.dataStoreAppManager() = DataStoreAppManager(this)
         val PAIRED_WEAR_DEVICE_KEY = stringPreferencesKey("paired_wear_device")
     }
 

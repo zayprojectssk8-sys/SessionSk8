@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.FormatLineSpacing
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -12,8 +11,6 @@ import androidx.compose.material.icons.filled.PrecisionManufacturing
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.zayprojetcs.weeksk8.core.room.model.RoomTrick
@@ -79,16 +76,19 @@ enum class RoundPreset(
 }
 
 enum class TrickDistributionMode(
+    val id: Int,
     val title: String,
     val description: String,
     val icon: ImageVector
 ) {
     ROUNDS_PER_TRICK(
+        1,
         "Rondas divididas por truco",
         "Asigna bloques de rondas específicas para practicar cada truco",
         Icons.Outlined.PieChart
     ),
     ALL_TRICKS_PER_ROUND(
+        2,
         "Todos los trucos por ronda",
         "En cada ronda intentarás todos los trucos de tu lista",
         Icons.Default.AllInclusive
@@ -96,16 +96,19 @@ enum class TrickDistributionMode(
 }
 
 enum class TrickOrderMode(
+    val id: Int,
     val title: String,
     val description: String,
     val icon: ImageVector
 ) {
     SEQUENTIAL(
+        1,
         "Orden manual / personalizado",
         "Los trucos se presentarán en el orden que los definiste",
         Icons.Default.FormatLineSpacing
     ),
     RANDOM(
+        2,
         "Orden aleatorio",
         "La app mezclará el orden de los trucos en cada sesión",
         Icons.Default.Shuffle
@@ -121,22 +124,22 @@ enum class TypeConfig {
 }
 
 enum class TrickTrackingMode(
+    val id: Int,
     val title: String,
     val description: String,
-    val icon: ImageVector,
-    val isRealtime: Boolean
+    val icon: ImageVector
 ) {
-    REST_CHECKIN(
+    REST_CHECKING(
+        id = 1,
         title = "Check-In en Descansos",
         description = "Patinas sin tocar la pantalla. En cada pausa de hidratación registras lo logrado en la ronda anterior.",
-        icon = Icons.Default.Timer,
-        isRealtime = false
+        icon = Icons.Default.Timer
     ),
     POST_SESSION(
+        id = 2,
         title = "Check-In Post-Sesión",
         description = "Evalúas qué trucos cayeron y tu efectividad general al terminar la sesión completa.",
-        icon = Icons.Default.AssignmentTurnedIn,
-        isRealtime = false
+        icon = Icons.Default.AssignmentTurnedIn
     )
 }
 

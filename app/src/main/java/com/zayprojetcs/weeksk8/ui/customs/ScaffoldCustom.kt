@@ -4,14 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -19,18 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zayprojetcs.weeksk8.screens.create_session_skate.modules.LoadConfigSessionData
-import com.zayprojetcs.weeksk8.screens.create_session_skate.modules.LoadResultTypeRoundSelected
-import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.CreateSessionSkateUiStateModel
-import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.RoundPreset
-import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.TypeConfig
 
 @Composable
 fun ScaffoldCustom(
@@ -83,6 +72,7 @@ fun ScaffoldCustom(
 @Composable
 fun ScaffoldCustomCreateSession(
     title: String = "TITULO",
+    textButton: String = "CONTINUAR",
     hideTitle: Boolean = false,
     hideButton: Boolean = false,
     floatingActionButton: @Composable (() -> Unit) = {},
@@ -149,7 +139,7 @@ fun ScaffoldCustomCreateSession(
                                 .height(54.dp),
                             shape = MaterialTheme.shapes.medium
                         ) {
-                            Text("Continuar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(text = textButton, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

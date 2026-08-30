@@ -12,8 +12,8 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.sk8.appwatch.R
-import com.sk8.appwatch.presentation.core.wear_helper.ImpactDetector
-import com.sk8.appwatch.presentation.core.wear_helper.WearMessageSender
+import com.sk8.appwatch.presentation.core.helper.NodeClientWatchHelper
+import com.sk8.appwatch.presentation.core.sensors.ImpactDetectorSensor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,24 +22,24 @@ import kotlinx.coroutines.launch
 
 class SkateTrackingService : LifecycleService() {
 
-    private lateinit var impactDetector: ImpactDetector
-    private lateinit var messageSender: WearMessageSender
+    private lateinit var impactDetectorSensor: ImpactDetectorSensor
+    private lateinit var nodeClientWatchHelper: NodeClientWatchHelper
     private var fallCount = 0
     private val _fallCountFlow = MutableStateFlow(0)
     val fallCountFlow: StateFlow<Int> = _fallCountFlow.asStateFlow()
 
     override fun onCreate() {
         super.onCreate()
-        messageSender = WearMessageSender(this)
+        nodeClientWatchHelper = NodeClientWatchHelper(this)
 
-        impactDetector = ImpactDetector(this) { gForce ->
+        impactDetectorSensor = ImpactDetectorSensor(this) { gForce ->
             // 1. Incrementar el contador local de caídas
             fallCount++
             _fallCountFlow.value = fallCount
 
             // 2. Notificar al smartphone vía Bluetooth
             lifecycleScope.launch(Dispatchers.IO) {
-                messageSender.sendImpactAlertToPhone(gForce)
+                nodeClientWatchHelper.sendImpactAlertToPhone(gForce)
             }
         }
     }
@@ -59,13 +59,13 @@ class SkateTrackingService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         startForegroundServiceWithNotification()
-        impactDetector.startListening()
+        impactDetectorSensor.startListening()
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        impactDetector.stopListening()
+        impactDetectorSensor.stopListening()
     }
 
     private fun startForegroundServiceWithNotification() {

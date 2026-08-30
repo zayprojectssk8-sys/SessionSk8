@@ -7,5 +7,6 @@ data class LinkDeviceSmartWatchUiStateModel(
     val wearables: List<DetectedWearable> = emptyList(),
     val isPermissionBluetoothGranted: Boolean = false,
     val currentDevice: DetectedWearable? = null,
+    val connectDevice: DetectedWearable? = null,
     val detectedWearableState: DetectedWearableState = DetectedWearableState.Idle
 )

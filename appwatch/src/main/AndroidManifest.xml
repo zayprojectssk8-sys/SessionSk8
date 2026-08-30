@@ -54,13 +54,13 @@
         </activity>
 
         <service
-            android:name=".presentation.core.services.WearAppListenerService"
+            android:name=".presentation.core.services.WearMessageNodeListenerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data
                     android:host="*"
-                    android:pathPrefix="/open_app"
+                    android:pathPrefix="/open_wear_app"
                     android:scheme="wear" />
             </intent-filter>
         </service>

@@ -7,24 +7,22 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.LinkDeviceSmartWatchScreen
-import com.zayprojetcs.weeksk8.screens.create_day_skate.CreateDaySkateScreen
 import com.zayprojetcs.weeksk8.screens.create_session_skate.CreateSessionSkateScreen
-import com.zayprojetcs.weeksk8.screens.dashboard.DashboardScreen
+import com.zayprojetcs.weeksk8.screens.detail_session_skate.SessionDetailScreen
 import com.zayprojetcs.weeksk8.screens.home_nav.routes.HomeNavigationRoutes
+import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.LinkDeviceSmartWatchScreen
 import com.zayprojetcs.weeksk8.screens.menu.MenuScreen
-import com.zayprojetcs.weeksk8.screens.start_day_skate.StartDaySkateScreen
 import com.zayprojetcs.weeksk8.ui.theme.ForceOrientationPortrait
 
 @Composable
 fun HomeNavigationScreen(viewModel: HomeNavigationViewModel = viewModel()) {
-    val startDay by viewModel.startDay.collectAsStateWithLifecycle()
 
+    val startSession by viewModel.startSession.collectAsStateWithLifecycle()
 
-    if (startDay != null) {
+    /*if (startSession != null) {
         StartDaySkateScreen()
         return
-    }
+    }*/
 
     ForceOrientationPortrait()
 
@@ -39,6 +37,9 @@ fun HomeNavigationScreen(viewModel: HomeNavigationViewModel = viewModel()) {
                 },
                 onNavigateCreateSession = {
                     navController.navigate(HomeNavigationRoutes.CreateSessionSkate)
+                },
+                onNavigateDetailSession = {
+                    navController.navigate(HomeNavigationRoutes.DetailSessionSkate)
                 })
         }
         composable<HomeNavigationRoutes.CreateSessionSkate> {
@@ -47,21 +48,14 @@ fun HomeNavigationScreen(viewModel: HomeNavigationViewModel = viewModel()) {
             })
         }
 
+        composable<HomeNavigationRoutes.DetailSessionSkate> {
+            SessionDetailScreen()
+        }
+
         composable<HomeNavigationRoutes.LinkDeviceSmartWatch> {
             LinkDeviceSmartWatchScreen(onFinished = {
                 navController.popBackStack()
             })
         }
-
-        composable<HomeNavigationRoutes.DashBoard> {
-            DashboardScreen(onCreateDaySkate = {
-                navController.navigate(HomeNavigationRoutes.CreateDaySkate)
-            })
-        }
-
-        composable<HomeNavigationRoutes.CreateDaySkate> {
-            CreateDaySkateScreen()
-        }
-
     }
 }

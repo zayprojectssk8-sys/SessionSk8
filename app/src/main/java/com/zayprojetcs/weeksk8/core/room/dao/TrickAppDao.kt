@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface TrickAppDao {
 
     @Insert
-    fun insertListTrick(listRoomTrick: List<RoomTrick>)
+    suspend fun insertListTrick(listRoomTrick: List<RoomTrick>): List<Long>
 
     @Update
     fun updateTrick(roomTrick: RoomTrick)
@@ -24,6 +24,7 @@ interface TrickAppDao {
 
     @Query("SELECT * FROM R_Trick WHERE status = '1' AND typeTrick='Floor'")
     fun getListTrickTriedUnlock(): List<RoomTrick>
+
     @Query("SELECT * FROM R_Trick WHERE status = '2' AND typeTrick='Floor'")
     fun getListTrickUnlock(): List<RoomTrick>
 

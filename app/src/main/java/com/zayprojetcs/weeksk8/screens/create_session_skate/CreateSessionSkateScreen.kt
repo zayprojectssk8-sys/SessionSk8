@@ -28,6 +28,7 @@ import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.CreateSessi
 import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.CreateSessionSkateUiStateModel
 import com.zayprojetcs.weeksk8.screens.create_session_skate.ui_state.model.TypeConfig
 import com.zayprojetcs.weeksk8.ui.customs.AlertInfoCustom
+import com.zayprojetcs.weeksk8.ui.customs.LoadOperationResult
 import com.zayprojetcs.weeksk8.ui.customs.ScaffoldCustomCreateSession
 import com.zayprojetcs.weeksk8.ui.customs.view.SelectTrickScreen
 import com.zaysk8.core.model.TypeStanceTrick
@@ -40,14 +41,18 @@ fun CreateSessionSkateScreen(
 ) {
     val createSessionSkateUiStateModel by viewModel.createSessionSkateUiStateModel.collectAsStateWithLifecycle()
 
-    BackHandler(enabled = true) {
-        if (createSessionSkateUiStateModel.typeConfig == TypeConfig.CONFIG_SESSION) {
-            onNavigateBackPress()
-        } else {
-            viewModel.loadEvent(OnValidateNavigationBackPress)
-        }
-    }
+    LoadOperationResult(
+        operationResult = viewModel.operationResult,
+        onRetry = {
+            viewModel.loadEvent(CreateSessionSkateUiState.OnFinishCreateSession)
+        },
+        onConfirm = onNavigateBackPress
+    )
 
+    BackHandler(enabled = true) {
+        if (createSessionSkateUiStateModel.typeConfig == TypeConfig.CONFIG_SESSION) onNavigateBackPress()
+        else viewModel.loadEvent(OnValidateNavigationBackPress)
+    }
 
     LoadAlertError(
         createSessionSkateUiStateModel = createSessionSkateUiStateModel,
@@ -56,10 +61,13 @@ fun CreateSessionSkateScreen(
 
     ScaffoldCustomCreateSession(
         title = "CREAR SESIÓN SKATE",
+        textButton = if (createSessionSkateUiStateModel.typeConfig == TypeConfig.SUMMARY_SESSION) "FINALIZAR" else "CONTINUAR",
         hideTitle = createSessionSkateUiStateModel.showSelectTrick,
         hideButton = createSessionSkateUiStateModel.showSelectTrick,
         onButtonClick = {
-            viewModel.loadEvent(OnValidateNavigationConfig)
+            if (createSessionSkateUiStateModel.typeConfig == TypeConfig.SUMMARY_SESSION)
+                viewModel.loadEvent(CreateSessionSkateUiState.OnFinishCreateSession)
+            else viewModel.loadEvent(OnValidateNavigationConfig)
         },
         content = {
 

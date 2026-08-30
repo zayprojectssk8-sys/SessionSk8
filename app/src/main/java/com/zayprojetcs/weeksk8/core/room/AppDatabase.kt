@@ -5,17 +5,17 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.zayprojetcs.weeksk8.core.room.dao.DayAppDao
+import com.zayprojetcs.weeksk8.core.room.dao.SessionDao
 import com.zayprojetcs.weeksk8.core.room.dao.RoundTrickAppDao
 import com.zayprojetcs.weeksk8.core.room.dao.TrickAppDao
-import com.zayprojetcs.weeksk8.core.room.model.RoomDay
 import com.zayprojetcs.weeksk8.core.room.model.RoomRoundTrick
+import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.model.RoomTrick
 
 
 @Database(
     entities = [
-        RoomDay::class,
+        RoomSession::class,
         RoomRoundTrick::class,
         RoomTrick::class
     ],
@@ -28,14 +28,14 @@ import com.zayprojetcs.weeksk8.core.room.model.RoomTrick
 //@TypeConverters(ConvertersGson::class)
 abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun dayAppDao(): DayAppDao
+    abstract fun sessionAppDao(): SessionDao
     abstract fun roundTrickAppDao(): RoundTrickAppDao
     abstract fun trickAppDao(): TrickAppDao
 
 
     companion object {
 
-        fun Context.roomDayDb() = appDataBaseInstance.dayAppDao()
+        fun Context.roomSessionDb() = appDataBaseInstance.sessionAppDao()
         fun Context.roomRoundTrickDb() = appDataBaseInstance.roundTrickAppDao()
         fun Context.roomTrickDb() = appDataBaseInstance.trickAppDao()
 

@@ -18,6 +18,7 @@ sealed interface CreateSessionSkateUiState {
     data class OnSetTypeConfig(val typeConfig: TypeConfig) : CreateSessionSkateUiState
     data class OnSetErrorDialog(val title: String?, val description: String?) : CreateSessionSkateUiState
     data object OnValidateNavigationConfig : CreateSessionSkateUiState
+    data object OnFinishCreateSession : CreateSessionSkateUiState
     data object OnValidateNavigationBackPress : CreateSessionSkateUiState
     data class OnSetRoundPreset(val eventRoundPreset: RoundPreset) : CreateSessionSkateUiState
     data class OnTrickDistributionMode(val trickDistributionMode: TrickDistributionMode) : CreateSessionSkateUiState

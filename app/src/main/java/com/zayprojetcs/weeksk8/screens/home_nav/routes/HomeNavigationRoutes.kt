@@ -15,6 +15,9 @@ sealed class HomeNavigationRoutes() {
     object CreateSessionSkate : HomeNavigationRoutes()
 
     @Serializable
+    object DetailSessionSkate : HomeNavigationRoutes()
+
+    @Serializable
     object DashBoard : HomeNavigationRoutes()
 
     @Serializable

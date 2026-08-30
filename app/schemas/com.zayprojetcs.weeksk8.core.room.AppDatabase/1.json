@@ -2,15 +2,85 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "012e1163b911229633c96806df9a508f",
+    "identityHash": "3605ef510449c17d92193ff29d56b17d",
     "entities": [
       {
-        "tableName": "R_Day",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idDay` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `status` TEXT NOT NULL, `createDate` INTEGER NOT NULL, `startDate` INTEGER NOT NULL, `closeDate` INTEGER NOT NULL, `typeActivityDay` INTEGER NOT NULL, `countRound` INTEGER NOT NULL)",
+        "tableName": "R_Session",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idSession` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `durationSessionMinutes` INTEGER, `warmupMinutes` INTEGER NOT NULL, `cooldownMinutes` INTEGER NOT NULL, `calculatedRounds` INTEGER NOT NULL, `totalSkateTime` INTEGER NOT NULL, `totalRestTime` INTEGER NOT NULL, `marginMinutes` INTEGER, `selectedCustomTricksCount` INTEGER NOT NULL, `unlockedTricksCount` INTEGER NOT NULL, `trickTrackingMode` INTEGER NOT NULL, `trickOrderMode` INTEGER NOT NULL, `trickDistributionMode` INTEGER NOT NULL, `status` TEXT NOT NULL, `createDate` INTEGER NOT NULL, `startDate` INTEGER NOT NULL, `closeDate` INTEGER NOT NULL)",
         "fields": [
           {
-            "fieldPath": "idDay",
-            "columnName": "idDay",
+            "fieldPath": "idSession",
+            "columnName": "idSession",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationSessionMinutes",
+            "columnName": "durationSessionMinutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "warmupMinutes",
+            "columnName": "warmupMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cooldownMinutes",
+            "columnName": "cooldownMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculatedRounds",
+            "columnName": "calculatedRounds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalSkateTime",
+            "columnName": "totalSkateTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalRestTime",
+            "columnName": "totalRestTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "marginMinutes",
+            "columnName": "marginMinutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "selectedCustomTricksCount",
+            "columnName": "selectedCustomTricksCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unlockedTricksCount",
+            "columnName": "unlockedTricksCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trickTrackingMode",
+            "columnName": "trickTrackingMode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trickOrderMode",
+            "columnName": "trickOrderMode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trickDistributionMode",
+            "columnName": "trickDistributionMode",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -37,30 +107,18 @@
             "columnName": "closeDate",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "typeActivityDay",
-            "columnName": "typeActivityDay",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "countRound",
-            "columnName": "countRound",
-            "affinity": "INTEGER",
-            "notNull": true
           }
         ],
         "primaryKey": {
           "autoGenerate": true,
           "columnNames": [
-            "idDay"
+            "idSession"
           ]
         }
       },
       {
         "tableName": "R_RoundTrick",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idRoundTrick` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `idOwnerDay` INTEGER NOT NULL, `idOwnerTrick` INTEGER, `status` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `round` INTEGER NOT NULL, `countTriedSuccess` INTEGER NOT NULL, `countTriedFail` INTEGER NOT NULL, FOREIGN KEY(`idOwnerDay`) REFERENCES `R_Day`(`idDay`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`idOwnerTrick`) REFERENCES `R_Trick`(`idTrick`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idRoundTrick` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `idOwnerSession` INTEGER NOT NULL, `idOwnerTrick` INTEGER, `status` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `round` INTEGER NOT NULL, `countTriedSuccess` INTEGER NOT NULL, `countTriedFail` INTEGER NOT NULL, FOREIGN KEY(`idOwnerSession`) REFERENCES `R_Session`(`idSession`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`idOwnerTrick`) REFERENCES `R_Trick`(`idTrick`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "idRoundTrick",
@@ -69,8 +127,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "idOwnerDay",
-            "columnName": "idOwnerDay",
+            "fieldPath": "idOwnerSession",
+            "columnName": "idOwnerSession",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -118,14 +176,14 @@
         },
         "foreignKeys": [
           {
-            "table": "R_Day",
+            "table": "R_Session",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "idOwnerDay"
+              "idOwnerSession"
             ],
             "referencedColumns": [
-              "idDay"
+              "idSession"
             ]
           },
           {
@@ -222,7 +280,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '012e1163b911229633c96806df9a508f')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3605ef510449c17d92193ff29d56b17d')"
     ]
   }
 }

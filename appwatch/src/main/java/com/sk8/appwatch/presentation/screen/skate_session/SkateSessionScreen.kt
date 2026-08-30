@@ -1,7 +1,5 @@
 package com.sk8.appwatch.presentation.screen.skate_session
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.compose.foundation.background
@@ -30,7 +27,6 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.*
 import com.sk8.appwatch.presentation.screen.skate_session.ui_state.SkateSessionUiStateModel
-import com.sk8.appwatch.presentation.utils.getRequiredWearOsPermissionsGranted
 
 @Composable
 fun WearMetricsSessionScreen(
@@ -221,16 +217,16 @@ private fun formatSeconds(seconds: Long): String {
 
 @Composable
 fun SkateSessionScreen(
-    nodeId: String? = null,
-    viewModel: SkateSessionViewModel = viewModel()
+    claveAppCommunication: String?,
+    viewModel: SkateSessionViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
 
     LaunchedEffect(key1 = Unit) {
-        if (nodeId != null) {
-            viewModel.loadCompleteLinkPhone(nodeId = nodeId)
+        if (claveAppCommunication != null) {
+            viewModel.loadCompleteLinkPhone(claveAppCommunication)
         }
     }
 

@@ -17,7 +17,7 @@ import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.CapabilityInfo
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
-import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager.Companion.dataStoreAppManager
+import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager
 import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.ui_state.LinkDeviceSmartWatchUiState
 import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.ui_state.model.LinkDeviceSmartWatchUiStateModel
 import com.zayprojetcs.weeksk8.utils.WearableDetector
@@ -29,6 +29,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -37,9 +38,43 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
     MessageClient.OnMessageReceivedListener, CapabilityClient.OnCapabilityChangedListener {
     val wearableDetector by lazy { WearableDetector(application.applicationContext) }
 
+    val dataStoreAppManager by lazy { DataStoreAppManager(application) }
+
+    init {
+        validateDeviceConnect()
+    }
+
+    private fun validateDeviceConnect() {
+        viewModelScope.launch {
+            val device = dataStoreAppManager.deviceConnectBluetooth.firstOrNull()
+            device?.let { itDevice ->
+                _linkDeviceSmartWatchUiState.update { itUpdate ->
+                    itUpdate.copy(
+                        detectedWearableState = DetectedWearableState.DeviceConnected(itDevice)
+                    )
+                }
+            }
+        }
+    }
+
     private val _linkDeviceSmartWatchUiState = MutableStateFlow(LinkDeviceSmartWatchUiStateModel())
     val linkDeviceSmartWatchUiState: StateFlow<LinkDeviceSmartWatchUiStateModel> =
         _linkDeviceSmartWatchUiState.asStateFlow()
+    /*val linkDeviceSmartWatchUiState: StateFlow<LinkDeviceSmartWatchUiStateModel> = combine(
+        dataStore.deviceConnectBluetooth,
+        _linkDeviceSmartWatchUiState
+    ) { connectedDevice, linkDeviceSmartWatchUiState ->
+        linkDeviceSmartWatchUiState.copy(
+            detectedWearableState = if (connectedDevice != null)
+                DetectedWearableState.DeviceConnected(connectedDevice)
+            else linkDeviceSmartWatchUiState.detectedWearableState,
+            connectDevice = connectedDevice
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = LinkDeviceSmartWatchUiStateModel()
+    )*/
 
     private var messageClient: MessageClient? = null
     private var capabilityClient: CapabilityClient? = null
@@ -54,10 +89,35 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
             LinkDeviceSmartWatchUiState.StartListeningForWatch -> startListeningForWatch()
             LinkDeviceSmartWatchUiState.StopListening -> stopListening()
             LinkDeviceSmartWatchUiState.ValidateWearableDetector -> validateWearableDetector()
+            is LinkDeviceSmartWatchUiState.OnDissociateDevice -> event.onDissociateDevice()
+        }
+    }
+
+    private fun LinkDeviceSmartWatchUiState.OnDissociateDevice.onDissociateDevice() {
+        viewModelScope.launch {
+
+            val isUnpaired = wearableDetector.unpairWearable(detectedWearable?.nodeId!!)
+            Log.wtf(
+                "javaClass.simpleName",
+                "OnDissociateDevice: isUnpaired ${isUnpaired}"
+            )
+            if (isUnpaired) {
+                // Éxito: Eliminar el reloj guardado en SharedPreferences/DataStore/Room
+                dataStoreAppManager.clearDeviceConnectBluetooth()
+                _linkDeviceSmartWatchUiState.update { itUpdate ->
+                    itUpdate.copy(
+                        detectedWearableState = DetectedWearableState.Idle
+                    )
+                }
+            }
         }
     }
 
     private fun LinkDeviceSmartWatchUiState.SetPermissionBluetooth.setPermissionBluetooth() {
+        Log.wtf(
+            "javaClass.simpleName",
+            "detectedWearableState: SetPermissionBluetooth ${isGranted}"
+        )
         _linkDeviceSmartWatchUiState.update { itUpdate ->
             itUpdate.copy(
                 isPermissionBluetoothGranted = isGranted
@@ -157,12 +217,11 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
 
         if (!device.isWearOs) {
             viewModelScope.launch {
-        Log.wtf(javaClass.simpleName, "combinsssSSe  device $device")
+                Log.wtf(javaClass.simpleName, "combinsssSSe  device $device")
 
                 if (device.nodeId != null) {
                     // 1. Guardar la vinculación persistentemente
-                    (getApplication() as? Context)?.dataStoreAppManager()
-                        ?.saveDeviceConnectBluetooth(device)
+                    dataStoreAppManager.saveDeviceConnectBluetooth(device)
                 }
             }
 
@@ -175,7 +234,9 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
             return
         }
 
+        Log.wtf(javaClass.simpleName, "CONECTEEED APP isAppInstalled: ${device}")
         if (device.isAppInstalled) {
+
             _linkDeviceSmartWatchUiState.update { itUpdate ->
                 itUpdate.copy(
                     currentDevice = device,
@@ -206,11 +267,13 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
 
     // Paso 3: Listener en tiempo real. Se gatilla cuando el reloj responde
     override fun onMessageReceived(messageEvent: com.google.android.gms.wearable.MessageEvent) {
-        Log.wtf(javaClass.simpleName, "onMessageReceived $messageEvent")
+        Log.wtf(javaClass.simpleName, "onMessageReceived ${messageEvent.sourceNodeId}")
         if (messageEvent.path == MESSAGE_PATH_WEAR_TO_PHONE_COMMUNICATION_ESTABLISHED) {
+
 
             val currentNode =
                 linkDeviceSmartWatchUiState.value.currentDevice // El dispositivo que estabas vinculando
+            Log.wtf(javaClass.simpleName, "CONECTEEED APP currentNode: ${currentNode}")
 
             Log.wtf(javaClass.simpleName, "onMessageReceived currentNode $currentNode")
 
@@ -225,8 +288,7 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
             viewModelScope.launch {
                 if (currentNode.nodeId != null) {
                     // 1. Guardar la vinculación persistentemente
-                    (getApplication() as? Context)?.dataStoreAppManager()
-                        ?.saveDeviceConnectBluetooth(currentNode)
+                   dataStoreAppManager.saveDeviceConnectBluetooth(currentNode)
                 }
             }
 
@@ -250,6 +312,10 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
     // 1. Receiver para detectar cuando se apaga/enciende el Bluetooth en el celular
     private val bluetoothStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            Log.wtf(
+                "javaClass.simpleName",
+                "detectedWearableState: onReceive intent.action "
+            )
             if (linkDeviceSmartWatchUiState.value.currentDevice != null) return
 
             if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
@@ -258,11 +324,20 @@ class LinkDeviceSmartWatchViewModel(application: Application) : AndroidViewModel
                 when (state) {
                     BluetoothAdapter.STATE_OFF, BluetoothAdapter.STATE_TURNING_OFF -> _linkDeviceSmartWatchUiState.update { itUpdate ->
                         itUpdate.copy(
-                            detectedWearableState = DetectedWearableState.Disconnected("El Bluetooth del celular se ha desactivado.")
+                            detectedWearableState = DetectedWearableState.Disconnected("El Bluetooth del celular se ha desactivado."),
+                            isPermissionBluetoothGranted = false
                         )
                     }
 
-                    BluetoothAdapter.STATE_ON, BluetoothAdapter.STATE_TURNING_ON -> validateWearableDetector()
+                    BluetoothAdapter.STATE_ON, BluetoothAdapter.STATE_TURNING_ON -> {
+                        Log.wtf(
+                            "javaClass.simpleName",
+                            "detectedWearableState: BluetoothAdapter STATE_ON "
+                        )
+                        loadEvent(
+                            LinkDeviceSmartWatchUiState.SetPermissionBluetooth(true)
+                        )
+                    }
 
                 }
             }

@@ -21,9 +21,9 @@ enum class StatusRoundTrick(
     tableName = "R_RoundTrick",
     foreignKeys = [
         ForeignKey(
-            entity = RoomDay::class,
-            parentColumns = ["idDay"],
-            childColumns = ["idOwnerDay"],
+            entity = RoomSession::class,
+            parentColumns = ["idSession"],
+            childColumns = ["idOwnerSession"],
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
@@ -39,11 +39,11 @@ data class RoomRoundTrick(
     @PrimaryKey(autoGenerate = true)
     var idRoundTrick: Long = 0,
 
-    var idOwnerDay: Long,
+    var idOwnerSession: Long,
     var idOwnerTrick: Long?,
 
     val status: String = "",
-    val attempts: Int = 5,
+    val attempts: Int = 0,
     val round: Int = 0,
     val countTriedSuccess: Int = 0,
     val countTriedFail: Int = 0,
