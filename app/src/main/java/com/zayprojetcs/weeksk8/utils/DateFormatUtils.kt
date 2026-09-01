@@ -12,3 +12,22 @@ fun String.dateTimeFormat(lastLoginMillis: Long?): String {
     val lastLoginFormatted = format.format(date)
     return lastLoginFormatted
 }
+
+/**
+ * Convierte segundos totales a formato "MM:SS" (Ej: 05:30, 12:05)
+ */
+fun formatSecondsToMMSS(seconds: Long): String {
+    val minutes = seconds / 60
+    val remainingSeconds = seconds % 60
+    return String.format(Locale.getDefault(), "%02d:%02d", minutes, remainingSeconds)
+}
+
+/**
+ * Convierte segundos totales a formato "HH:MM:SS" para el temporizador general (Ej: 01:15:30)
+ */
+fun formatSecondsToHHMMSS(seconds: Long): String {
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    val remainingSeconds = seconds % 60
+    return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, remainingSeconds)
+}

@@ -32,7 +32,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,22 +42,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
 import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.ui_state.LinkDeviceSmartWatchUiState
-import com.zayprojetcs.weeksk8.utils.DetectedWearable
+import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.ui_state.model.DetectedWearableState
 import com.zayprojetcs.weeksk8.utils.getRequiredBluetoothPermissionsGranted
-
-sealed interface DetectedWearableState {
-    data object Idle : DetectedWearableState
-    data class DeviceDetected(val device: DetectedWearable) : DetectedWearableState
-    data class DeviceConnected(val device: DetectedWearable) : DetectedWearableState
-    data class AwaitingWatch(val device: DetectedWearable, val message: String) :
-        DetectedWearableState
-
-    data object ScanningDevices : DetectedWearableState
-    data object EmptyDevices : DetectedWearableState
-    data class Success(val device: DetectedWearable) : DetectedWearableState
-    data class Disconnected(val reason: String) : DetectedWearableState
-}
 
 
 @Composable
@@ -68,22 +55,22 @@ fun LinkDeviceSmartWatchScreen(
 ) {
     val linkDeviceSmartWatchUiState by viewModel.linkDeviceSmartWatchUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         viewModel.loadEvent(LinkDeviceSmartWatchUiState.SetPermissionBluetooth(isGranted))
+        viewModel.loadEvent(LinkDeviceSmartWatchUiState.SetScannerDevices(isGranted))
     }
 
     // 2. Iniciar y detener el listener de mensajes del reloj según el ciclo de vida de la UI
-    DisposableEffect(linkDeviceSmartWatchUiState.isPermissionBluetoothGranted) {
+    LaunchedEffect(linkDeviceSmartWatchUiState.startScannerDevices) {
 
-        if (linkDeviceSmartWatchUiState.isPermissionBluetoothGranted) {
+        if (linkDeviceSmartWatchUiState.startScannerDevices) {
             viewModel.loadEvent(LinkDeviceSmartWatchUiState.ValidateWearableDetector)
             viewModel.loadEvent(LinkDeviceSmartWatchUiState.StartListeningForWatch)
         }
-        onDispose {
-            viewModel.loadEvent(LinkDeviceSmartWatchUiState.StopListening)
-        }
+
     }
 
     LaunchedEffect(linkDeviceSmartWatchUiState.wearables.isNotEmpty()) {
@@ -124,7 +111,7 @@ fun LinkDeviceSmartWatchScreen(
                                 launcher.launch(Manifest.permission.BLUETOOTH_CONNECT)
                             } else {
                                 viewModel.loadEvent(
-                                    LinkDeviceSmartWatchUiState.SetPermissionBluetooth(true)
+                                    LinkDeviceSmartWatchUiState.SetScannerDevices(true)
                                 )
                             }
                         })
@@ -143,7 +130,7 @@ fun LinkDeviceSmartWatchScreen(
                             },
                             onSearchDevices = {
                                 viewModel.loadEvent(
-                                    LinkDeviceSmartWatchUiState.SetPermissionBluetooth(true)
+                                    LinkDeviceSmartWatchUiState.SetScannerDevices(true)
                                 )
                             }
                         )
@@ -159,8 +146,8 @@ fun LinkDeviceSmartWatchScreen(
 private fun DeviceSearchContent(
     state: DetectedWearableState,
     onSearchDevices: () -> Unit,
-    onConnect: (DetectedWearable) -> Unit,
-    onDisassociateDevice: (DetectedWearable) -> Unit,
+    onConnect: (DeviceWearable) -> Unit,
+    onDisassociateDevice: (DeviceWearable) -> Unit,
     onFinished: () -> Unit,
 ) {
     Column(
@@ -257,7 +244,7 @@ fun LoadDisconnectedScreen(reason: String) {
 }
 
 @Composable
-fun LoadSuccessParingDeviceScreen(device: DetectedWearable, onFinish: () -> Unit) {
+fun LoadSuccessParingDeviceScreen(device: DeviceWearable, onFinish: () -> Unit) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -321,8 +308,8 @@ fun LoadSuccessParingDeviceScreen(device: DetectedWearable, onFinish: () -> Unit
 
 @Composable
 fun LoadConnectedDeviceScreen(
-    device: DetectedWearable,
-    onDisassociateDevice: (DetectedWearable) -> Unit
+    device: DeviceWearable,
+    onDisassociateDevice: (DeviceWearable) -> Unit
 ) {
 
     Column(
@@ -367,7 +354,7 @@ fun LoadConnectedDeviceScreen(
 }
 
 @Composable
-fun LoadAwaitingWatchScreen(device: DetectedWearable, message: String) {
+fun LoadAwaitingWatchScreen(device: DeviceWearable, message: String) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -504,9 +491,9 @@ fun LoadScanningDevicesScreen() {
 
 @Composable
 fun LoadDeviceDetectedScreen(
-    device: DetectedWearable,
+    device: DeviceWearable,
     textButton: String = "Conectar",
-    onConnect: ((DetectedWearable) -> Unit)? = null
+    onConnect: ((DeviceWearable) -> Unit)? = null
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -548,9 +535,9 @@ fun LoadDeviceDetectedScreen(
 
 @Composable
 fun LoadCardDeviceDetected(
-    device: DetectedWearable,
+    device: DeviceWearable,
     textButton: String = "Conectar",
-    onConnect: ((DetectedWearable) -> Unit)? = null
+    onConnect: ((DeviceWearable) -> Unit)? = null
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth()

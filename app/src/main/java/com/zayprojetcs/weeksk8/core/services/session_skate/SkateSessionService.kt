@@ -1,11 +1,11 @@
-package com.zayprojetcs.weeksk8.services
+package com.zayprojetcs.weeksk8.core.services.session_skate
 
+import android.R
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
@@ -18,6 +18,9 @@ import com.zayprojetcs.weeksk8.MainActivity
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetIdSession
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomInsertSession
+import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionPhase
+import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionStateModel
+import com.zayprojetcs.weeksk8.screens.detail_session_skate.helper.DetailSessionUiManager
 import com.zaysk8.core.utils.ContinuousVibrator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,27 +35,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class SkateSessionPhase(val displayName: String) {
-    WARMUP("Calentamiento"),
-    SKATE("Patinaje"),
-    REST("Descanso"),
-    EXTRA_TIME("Tiempo Extra"),
-    STRETCHING("Estiramiento"),
-    COMPLETED("Finalizado")
-}
 
-data class SkateSessionState(
-    val isRunning: Boolean = false,
-    val isPaused: Boolean = false,
-    val isSessionStarted: Boolean = false,
-    val isWaitingManualStart: Boolean = true, // TRUE cuando una fase termina y espera inicio manual del usuario
-    val currentPhase: SkateSessionPhase = SkateSessionPhase.WARMUP,
-    val currentRound: Int = 1,
-    val totalRounds: Int = 0,
-    val generalElapsedTimeSec: Long = 0L,     // Cronómetro general activo
-    val phaseTimeRemainingSec: Long = 0L,     // Tiempo restante de la ronda/fase actual
-    val phaseTotalDurationSec: Long = 0L
-)
 
 class SkateSessionService : Service() {
 
@@ -80,8 +63,8 @@ class SkateSessionService : Service() {
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "skate_session_channel"
 
-        private val _sessionState = MutableStateFlow(SkateSessionState())
-        val sessionState: StateFlow<SkateSessionState> = _sessionState.asStateFlow()
+        private val _sessionState = MutableStateFlow(SkateSessionStateModel())
+        val sessionState: StateFlow<SkateSessionStateModel> = _sessionState.asStateFlow()
     }
 
     // 1. Declarar la instancia del vibrador
@@ -93,11 +76,11 @@ class SkateSessionService : Service() {
         continuousVibrator = ContinuousVibrator(this)
     }
 
-    private fun updateServiceState(newState: SkateSessionState) {
+    private fun updateServiceState(newState: SkateSessionStateModel) {
         _sessionState.value = newState
 
         // 1. Notificar a toda la App (ViewModel / UI)
-        SkateSessionManager.updateState(newState)
+        DetailSessionUiManager.updateState(newState)
 
         // 2. Actualizar la notificación flotante
         updateNotification(newState)
@@ -150,7 +133,7 @@ class SkateSessionService : Service() {
         val initialDuration =
             if (initialPhase == SkateSessionPhase.WARMUP) warmupDurationSec else skatePerRoundDurationSec
 
-        val initialState = SkateSessionState(
+        val initialState = SkateSessionStateModel(
             isRunning = true,
             isPaused = false,
             isSessionStarted = false,       // Aún no arranca el tiempo general
@@ -236,7 +219,7 @@ class SkateSessionService : Service() {
      * - SE ACTIVA `isWaitingManualStart = true` para congelar el tiempo de fase.
      * - `isPaused` se mantiene en `false` para que el tiempo general continúe.
      */
-    private fun handlePhaseCompletion(state: SkateSessionState, currentGeneralTime: Long) {
+    private fun handlePhaseCompletion(state: SkateSessionStateModel, currentGeneralTime: Long) {
         val (nextPhase, nextRound, duration) = calculateNextPhaseAndRound(state)
 
         if (nextPhase == SkateSessionPhase.COMPLETED) {
@@ -268,7 +251,7 @@ class SkateSessionService : Service() {
         updateNotification(waitingState)
     }
 
-    private fun calculateNextPhaseAndRound(state: SkateSessionState): Triple<SkateSessionPhase, Int, Long> {
+    private fun calculateNextPhaseAndRound(state: SkateSessionStateModel): Triple<SkateSessionPhase, Int, Long> {
         return when (state.currentPhase) {
             SkateSessionPhase.WARMUP -> {
                 Triple(SkateSessionPhase.SKATE, 1, skatePerRoundDurationSec)
@@ -371,12 +354,12 @@ class SkateSessionService : Service() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager =
-                    getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 val vibrator = vibratorManager.defaultVibrator
                 vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 500, 200, 500), -1))
             } else {
                 @Suppress("DEPRECATION")
-                val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(
                         VibrationEffect.createWaveform(
@@ -424,12 +407,12 @@ class SkateSessionService : Service() {
 
     // --- NOTIFICACIÓN ---
 
-    private fun updateNotification(state: SkateSessionState) {
+    private fun updateNotification(state: SkateSessionStateModel) {
         val manager = getSystemService(NotificationManager::class.java)
         manager?.notify(NOTIFICATION_ID, buildNotification(state))
     }
 
-    private fun buildNotification(state: SkateSessionState): Notification {
+    private fun buildNotification(state: SkateSessionStateModel): Notification {
         val generalFormatted = formatTime(state.generalElapsedTimeSec)
         val phaseFormatted = formatTime(state.phaseTimeRemainingSec)
 
@@ -474,7 +457,7 @@ class SkateSessionService : Service() {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(R.drawable.ic_media_play)
             .setContentIntent(mainTapPendingIntent) // <-- Vincula el toque del cuerpo de la notificación
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -503,7 +486,7 @@ class SkateSessionService : Service() {
             )
 
             builder.addAction(
-                android.R.drawable.ic_media_play,
+                R.drawable.ic_media_play,
                 "▶ INICIAR RONDA",
                 startPhasePendingIntent
             )
@@ -521,7 +504,7 @@ class SkateSessionService : Service() {
 
             val buttonText = if (state.isPaused) "▶ REANUDAR" else "⏸ PAUSAR"
             builder.addAction(
-                if (state.isPaused) android.R.drawable.ic_media_play else android.R.drawable.ic_media_pause,
+                if (state.isPaused) R.drawable.ic_media_play else R.drawable.ic_media_pause,
                 buttonText,
                 pausePendingIntent
             )
@@ -538,7 +521,7 @@ class SkateSessionService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         builder.addAction(
-            android.R.drawable.ic_menu_close_clear_cancel,
+            R.drawable.ic_menu_close_clear_cancel,
             "TERMINAR",
             stopPendingIntent
         )

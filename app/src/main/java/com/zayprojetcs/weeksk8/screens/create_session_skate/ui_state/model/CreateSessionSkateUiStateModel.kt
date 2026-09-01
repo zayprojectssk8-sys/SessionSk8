@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.zayprojetcs.weeksk8.core.room.model.RoomTrick
-import com.zayprojetcs.weeksk8.utils.DetectedWearable
+import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
 import com.zaysk8.core.model.TFMTrick
 
 
@@ -179,7 +179,7 @@ data class CreateSessionSkateUiStateModel(
     val trickDistributionMode: TrickDistributionMode = TrickDistributionMode.ROUNDS_PER_TRICK,
     val trickOrderMode: TrickOrderMode = TrickOrderMode.SEQUENTIAL,
 
-    val detectedWearable: DetectedWearable? = null,
+    val deviceWearable: DeviceWearable? = null,
 
     val titleErrorDialog: String? = null,
     val descErrorDialog: String? = null,

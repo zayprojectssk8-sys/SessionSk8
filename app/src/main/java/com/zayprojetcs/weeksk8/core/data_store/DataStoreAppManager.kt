@@ -3,7 +3,7 @@ package com.zayprojetcs.weeksk8.core.data_store
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.zayprojetcs.weeksk8.utils.DetectedWearable
+import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
 import com.zaysk8.core.data_store.dataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,17 +17,17 @@ class DataStoreAppManager(private val context: Context) {
     }
 
 
-    suspend fun saveDeviceConnectBluetooth(data: DetectedWearable) {
+    suspend fun saveDeviceConnectBluetooth(data: DeviceWearable) {
         context.dataStore.edit { preferences ->
             preferences[PAIRED_WEAR_DEVICE_KEY] = Json.encodeToString(data)
         }
     }
 
     /** Flow que deserializa los datos del estado de validacion de la cuenta */
-    val deviceConnectBluetooth: Flow<DetectedWearable?> =
+    val deviceConnectBluetooth: Flow<DeviceWearable?> =
         context.dataStore.data.map { preferences ->
             val json = preferences[PAIRED_WEAR_DEVICE_KEY]
-            if (json != null) Json.decodeFromString<DetectedWearable>(json)
+            if (json != null) Json.decodeFromString<DeviceWearable>(json)
             else null
         }
 

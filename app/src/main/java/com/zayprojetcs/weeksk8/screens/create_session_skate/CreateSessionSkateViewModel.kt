@@ -42,7 +42,7 @@ class CreateSessionSkateViewModel(application: Application) : AndroidViewModel(a
     ) { tricksUnlock, deviceWatch, createSessionSkateUiStateModel ->
 
         createSessionSkateUiStateModel.copy(
-            detectedWearable = deviceWatch,
+            deviceWearable = deviceWatch,
             unlockTrickList = tricksUnlock
         )
     }.stateIn(

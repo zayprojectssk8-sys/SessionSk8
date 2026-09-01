@@ -60,7 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PropertyStatus
-import com.zayprojetcs.weeksk8.services.SkateSessionService
+import com.zayprojetcs.weeksk8.core.services.session_skate.SkateSessionService
 import com.zayprojetcs.weeksk8.ui.customs.ScaffoldCustomCreateSession
 import com.zaysk8.core.model.SessionPhase
 

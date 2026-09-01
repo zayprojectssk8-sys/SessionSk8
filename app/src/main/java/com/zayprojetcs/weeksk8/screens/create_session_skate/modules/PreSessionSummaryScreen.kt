@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -216,7 +215,7 @@ fun PreSessionSummaryScreen(
         // ==========================================
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = if (createSessionSkateUiStateModel.detectedWearable != null)
+                containerColor = if (createSessionSkateUiStateModel.deviceWearable != null)
                     MaterialTheme.colorScheme.surfaceVariant
                 else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
             ),
@@ -229,26 +228,26 @@ fun PreSessionSummaryScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = if (createSessionSkateUiStateModel.detectedWearable != null) Icons.Default.Watch else Icons.Default.WatchOff,
+                    imageVector = if (createSessionSkateUiStateModel.deviceWearable != null) Icons.Default.Watch else Icons.Default.WatchOff,
                     contentDescription = null,
-                    tint = if (createSessionSkateUiStateModel.detectedWearable != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    tint = if (createSessionSkateUiStateModel.deviceWearable != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (createSessionSkateUiStateModel.detectedWearable != null) "${createSessionSkateUiStateModel.detectedWearable.name} Conectado" else "Smartwatch no detectado",
+                        text = if (createSessionSkateUiStateModel.deviceWearable != null) "${createSessionSkateUiStateModel.deviceWearable.name} Conectado" else "Smartwatch no detectado",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
-                    if (createSessionSkateUiStateModel.detectedWearable != null) {
+                    if (createSessionSkateUiStateModel.deviceWearable != null) {
                         Text(
-                            text = if (createSessionSkateUiStateModel.detectedWearable.isWearOs) "Wear OS" else "Smartband / BLE",
+                            text = if (createSessionSkateUiStateModel.deviceWearable.isWearOs) "Wear OS" else "Smartband / BLE",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(
-                        text = if (createSessionSkateUiStateModel.detectedWearable != null)
+                        text = if (createSessionSkateUiStateModel.deviceWearable != null)
                             "Podremos monitorizar tus métricas de frecuencia cardíaca durante la sesión."
                         else "La sesión se ejecutará únicamente desde el teléfono.",
                         style = MaterialTheme.typography.bodySmall,

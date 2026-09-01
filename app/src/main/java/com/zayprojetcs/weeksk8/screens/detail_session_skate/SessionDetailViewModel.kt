@@ -5,25 +5,26 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetStartSessionFlow
+import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionPhase
+import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionStateModel
+import com.zayprojetcs.weeksk8.screens.detail_session_skate.helper.DetailSessionUiManager
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.ActiveSessionUiState
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PropertyStatus
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.SessionDetailUiState
-import com.zayprojetcs.weeksk8.services.SkateSessionManager
-import com.zayprojetcs.weeksk8.services.SkateSessionPhase
-import com.zayprojetcs.weeksk8.services.SkateSessionState
+import com.zayprojetcs.weeksk8.utils.formatSecondsToHHMMSS
+import com.zayprojetcs.weeksk8.utils.formatSecondsToMMSS
 import com.zaysk8.core.model.SessionPhase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import java.util.Locale
 
 class SessionDetailViewModel(application: Application) : AndroidViewModel(application) {
 
 
     val uiState: StateFlow<SessionDetailUiState> = combine(
         application.repoRoomGetStartSessionFlow(),
-        SkateSessionManager.sessionState
+        DetailSessionUiManager.sessionState
     ) { roomSession, serviceState ->
         mapToUiState(roomSession?.roomSession, serviceState)
     }.stateIn(
@@ -35,7 +36,7 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
 
     private fun mapToUiState(
         session: RoomSession?,
-        serviceState: SkateSessionState
+        serviceState: SkateSessionStateModel
     ): SessionDetailUiState {
         if (session == null) return SessionDetailUiState(isLoading = true)
 
@@ -48,9 +49,9 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
             else -> PropertyStatus.PENDING
         }
 
-        val skateRoundsStatus = when {
-            currentPhase == SessionPhase.SKATE_RUNNING || currentPhase == SessionPhase.REST_RUNNING -> PropertyStatus.IN_PROGRESS
-            currentPhase == SessionPhase.COOL_DOWN || currentPhase == SessionPhase.EXTRA_TIME_RUNNING || currentPhase == SessionPhase.FINISHED -> PropertyStatus.COMPLETED
+        val skateRoundsStatus = when (currentPhase) {
+            SessionPhase.SKATE_RUNNING, SessionPhase.REST_RUNNING -> PropertyStatus.IN_PROGRESS
+            SessionPhase.COOL_DOWN, SessionPhase.EXTRA_TIME_RUNNING, SessionPhase.FINISHED -> PropertyStatus.COMPLETED
             else -> PropertyStatus.PENDING
         }
 
@@ -95,28 +96,3 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
     }
 }
 
-fun Long.toFormattedTimer(): String {
-    val totalSeconds = this / 1000
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return String.format("%02d:%02d", minutes, seconds)
-}
-
-/**
- * Convierte segundos totales a formato "MM:SS" (Ej: 05:30, 12:05)
- */
-fun formatSecondsToMMSS(seconds: Long): String {
-    val minutes = seconds / 60
-    val remainingSeconds = seconds % 60
-    return String.format(Locale.getDefault(), "%02d:%02d", minutes, remainingSeconds)
-}
-
-/**
- * Convierte segundos totales a formato "HH:MM:SS" para el temporizador general (Ej: 01:15:30)
- */
-fun formatSecondsToHHMMSS(seconds: Long): String {
-    val hours = seconds / 3600
-    val minutes = (seconds % 3600) / 60
-    val remainingSeconds = seconds % 60
-    return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, remainingSeconds)
-}
