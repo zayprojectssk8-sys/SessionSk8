@@ -59,15 +59,19 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
-import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PropertyStatus
 import com.zayprojetcs.weeksk8.core.services.session_skate.SkateSessionService
+import com.zayprojetcs.weeksk8.core.services.session_skate.SkateSessionService2
+import com.zayprojetcs.weeksk8.screens.detail_session_skate.module.PermissionsSessionScreen
+import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PropertyStatus
+import com.zayprojetcs.weeksk8.ui.customs.ScaffoldCustom
 import com.zayprojetcs.weeksk8.ui.customs.ScaffoldCustomCreateSession
-import com.zaysk8.core.model.SessionPhase
+import com.zaysk8.core.model.SkateSessionPhase
 
 @Composable
 fun SessionDetailScreen(
     viewModel: SessionDetailViewModel = viewModel()
 ) {
+
 
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -77,11 +81,9 @@ fun SessionDetailScreen(
     val activeState = uiState.activeState
     val isWaitingAction = activeState.isWaitingUserAction || !activeState.isSessionStarted
 
-    ScaffoldCustomCreateSession(
-        title = "DETALLE SESIÓN SKATE",
-        onButtonClick = {
 
-        },
+    ScaffoldCustom(
+        title = "DETALLE SESIÓN SKATE",
         content = {
             LazyColumn(
                 modifier = Modifier
@@ -170,7 +172,7 @@ fun SessionDetailScreen(
                             icon = Icons.Default.DirectionsRun,
                             configuredTime = "${session.warmupMinutes} min",
                             status = uiState.warmupStatus,
-                            phaseTimer = if (uiState.activeState.phase == SessionPhase.WARMUP) uiState.formattedPhaseTimer else null,
+                            phaseTimer = if (uiState.activeState.phase == SkateSessionPhase.WARMUP) uiState.formattedPhaseTimer else null,
                             isWaitingAction = isWaitingAction
                         )
                     }
@@ -198,8 +200,8 @@ fun SessionDetailScreen(
                                 title = "Tiempo Extra (Margen)",
                                 icon = Icons.Default.MoreTime,
                                 configuredTime = "$margin min",
-                                status = if (uiState.activeState.phase == SessionPhase.EXTRA_TIME_RUNNING) PropertyStatus.IN_PROGRESS else PropertyStatus.PENDING,
-                                phaseTimer = if (uiState.activeState.phase == SessionPhase.EXTRA_TIME_RUNNING) uiState.formattedPhaseTimer else null,
+                                status = if (uiState.activeState.phase == SkateSessionPhase.EXTRA_TIME) PropertyStatus.IN_PROGRESS else PropertyStatus.PENDING,
+                                phaseTimer = if (uiState.activeState.phase == SkateSessionPhase.EXTRA_TIME) uiState.formattedPhaseTimer else null,
                                 isWaitingAction = isWaitingAction
                             )
                         }
@@ -214,7 +216,7 @@ fun SessionDetailScreen(
                             icon = Icons.Default.SelfImprovement,
                             configuredTime = "${session.cooldownMinutes} min",
                             status = uiState.cooldownStatus,
-                            phaseTimer = if (uiState.activeState.phase == SessionPhase.COOL_DOWN) uiState.formattedPhaseTimer else null,
+                            phaseTimer = if (uiState.activeState.phase == SkateSessionPhase.STRETCHING) uiState.formattedPhaseTimer else null,
                             isWaitingAction = isWaitingAction
                         )
                     }
@@ -399,14 +401,14 @@ fun SkateRoundsContainerCard(
     totalSkateMin: Int,
     totalRestMin: Int,
     currentRound: Int,
-    currentPhase: SessionPhase,
+    currentPhase: SkateSessionPhase,
     phaseTimer: String,
     roundsStatus: PropertyStatus,
     isWaitingAction: Boolean
 ) {
     val isRoundsActive = roundsStatus == PropertyStatus.IN_PROGRESS
-    val isSkateActive = currentPhase == SessionPhase.SKATE_RUNNING
-    val isRestActive = currentPhase == SessionPhase.REST_RUNNING
+    val isSkateActive = currentPhase == SkateSessionPhase.SKATE
+    val isRestActive = currentPhase == SkateSessionPhase.REST
 
     val roundsCount = if (totalRounds > 0) totalRounds else 1
     val skateTimePerRoundSec = (totalSkateMin * 60) / roundsCount
@@ -679,9 +681,9 @@ fun SessionControlBottomBar(
 }
 
 fun Context.startSkateSession(sessionId: Long) {
-    val intent = Intent(this, SkateSessionService::class.java).apply {
-        action = SkateSessionService.ACTION_START_SESSION
-        putExtra(SkateSessionService.EXTRA_SESSION_ID, sessionId)
+    val intent = Intent(this, SkateSessionService2::class.java).apply {
+        action = SkateSessionService2.ACTION_START_SESSION
+        putExtra(SkateSessionService2.EXTRA_SESSION_ID, sessionId)
     }
     // ContextCompat maneja automáticamente las diferencias de versión de Android (API 26+)
     ContextCompat.startForegroundService(this, intent)
