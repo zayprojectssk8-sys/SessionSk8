@@ -15,12 +15,14 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import com.zayprojetcs.weeksk8.MainActivity
+import com.zayprojetcs.weeksk8.core.helper.manager.SensorSessionManager
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetIdSession
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomInsertSession
-import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionPhase
-import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionStateModel
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.helper.DetailSessionUiManager
+import com.zaysk8.core.helper.SessionSyncManager
+import com.zaysk8.core.model.SkateSessionPhase
+import com.zaysk8.core.model.SkateSessionStateModel
 import com.zaysk8.core.utils.ContinuousVibrator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,11 +33,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-
 
 class SkateSessionService : Service() {
 
@@ -51,10 +53,13 @@ class SkateSessionService : Service() {
     private var extraTimeDurationSec = 0L
     private var stretchingDurationSec = 0L
 
+    // Módulos de Sincronización y Retroalimentación
+    private lateinit var continuousVibrator: ContinuousVibrator
+    private lateinit var sessionSyncManager: SessionSyncManager
+
     companion object {
         const val ACTION_START_SESSION = "ACTION_START_SESSION"
-        const val ACTION_START_NEXT_PHASE =
-            "ACTION_START_NEXT_PHASE" // Para iniciar manualmente la siguiente fase/ronda
+        const val ACTION_START_NEXT_PHASE = "ACTION_START_NEXT_PHASE"
         const val ACTION_PAUSE_TOGGLE = "ACTION_PAUSE_TOGGLE"
         const val ACTION_STOP_SESSION = "ACTION_STOP_SESSION"
 
@@ -67,16 +72,53 @@ class SkateSessionService : Service() {
         val sessionState: StateFlow<SkateSessionStateModel> = _sessionState.asStateFlow()
     }
 
-    // 1. Declarar la instancia del vibrador
-    private lateinit var continuousVibrator: ContinuousVibrator
-
     override fun onCreate() {
         super.onCreate()
-        // 2. Inicializar en onCreate
         continuousVibrator = ContinuousVibrator(this)
+        sessionSyncManager = SessionSyncManager(applicationContext)
+
+        // Comenzar a escuchar eventos enviados desde el Reloj (Wear OS)
+        observeWearableSync()
     }
 
-    private fun updateServiceState(newState: SkateSessionStateModel) {
+    // =========================================================================
+    // SINCRONIZACIÓN Y ESTADO
+    // =========================================================================
+
+    /**
+     * Escucha los cambios de estado enviados desde el Reloj Wear OS a través de DataClient.
+     */
+    private fun observeWearableSync() {
+        sessionSyncManager.observeSessionState()
+            .onEach { (remoteState, _) ->
+                val currentLocalState = _sessionState.value
+
+                // Prevenir bucles infinitos procesando solo cuando el estado remoto difiera del local
+                if (remoteState != currentLocalState) {
+
+                    // Si el usuario presionó "Iniciar" o "Siguiente Ronda" desde el reloj, detener la vibración del celular
+                    if (currentLocalState.isWaitingManualStart && !remoteState.isWaitingManualStart) {
+                        continuousVibrator.stopVibration()
+                    }
+
+                    // Si el reloj detuvo la sesión
+                    if (!remoteState.isRunning && currentLocalState.isRunning) {
+                        finishSession(syncToWear = false)
+                        return@onEach
+                    }
+
+                    _sessionState.value = remoteState
+                    DetailSessionUiManager.updateState(remoteState)
+                    updateNotification(remoteState)
+                }
+            }
+            .launchIn(serviceScope)
+    }
+
+    /**
+     * Actualiza la UI del Celular, la Notificación y opcionalmente envía el estado hacia el Reloj.
+     */
+    private fun updateServiceState(newState: SkateSessionStateModel, syncToWear: Boolean = false) {
         _sessionState.value = newState
 
         // 1. Notificar a toda la App (ViewModel / UI)
@@ -84,6 +126,13 @@ class SkateSessionService : Service() {
 
         // 2. Actualizar la notificación flotante
         updateNotification(newState)
+
+        // 3. Sincronizar con el Reloj si es un evento relevante
+        if (syncToWear) {
+            serviceScope.launch {
+                sessionSyncManager.updateSessionState(newState)
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -162,6 +211,11 @@ class SkateSessionService : Service() {
             startForeground(NOTIFICATION_ID, notification)
         }
 
+        // Sincronizar el inicio con el reloj Wear OS
+        serviceScope.launch {
+            sessionSyncManager.updateSessionState(initialState)
+        }
+
         runTimerLoop()
     }
 
@@ -195,19 +249,14 @@ class SkateSessionService : Service() {
                             generalElapsedTimeSec = newGeneralTime,
                             phaseTimeRemainingSec = newPhaseTime
                         )
-                        _sessionState.value = updatedState
-                        updateServiceState(updatedState)
-                        updateNotification(updatedState)
-                        // Usamos la función centralizada para sincronizar UI y Notificación
+                        updateServiceState(updatedState, syncToWear = false)
                     }
                 } else {
                     // Durante la espera entre estados, el tiempo general SIGUE avanzando
                     val updatedState = currentState.copy(
                         generalElapsedTimeSec = newGeneralTime
                     )
-                    _sessionState.value = updatedState
-                    updateServiceState(updatedState)
-                    updateNotification(updatedState)
+                    updateServiceState(updatedState, syncToWear = false)
                 }
             }
         }
@@ -223,7 +272,7 @@ class SkateSessionService : Service() {
         val (nextPhase, nextRound, duration) = calculateNextPhaseAndRound(state)
 
         if (nextPhase == SkateSessionPhase.COMPLETED) {
-            finishSession()
+            finishSession(syncToWear = true)
             return
         }
 
@@ -244,11 +293,11 @@ class SkateSessionService : Service() {
             phaseTotalDurationSec = duration
         )
 
-        _sessionState.value = waitingState
-        // 3. ACTIVAR VIBRACIÓN CONTINUA al terminar la fase
+        // Activar vibración continua al terminar la fase
         continuousVibrator.startContinuousVibration()
-        //triggerVibrationAlert()
-        updateNotification(waitingState)
+
+        // Notificar y publicar actualización al reloj
+        updateServiceState(waitingState, syncToWear = true)
     }
 
     private fun calculateNextPhaseAndRound(state: SkateSessionStateModel): Triple<SkateSessionPhase, Int, Long> {
@@ -302,6 +351,12 @@ class SkateSessionService : Service() {
                 state.currentRound,
                 0L
             )
+
+            SkateSessionPhase.NOT_STARTED -> Triple(
+                SkateSessionPhase.NOT_STARTED,
+                state.currentRound,
+                0L
+            )
         }
     }
 
@@ -318,8 +373,7 @@ class SkateSessionService : Service() {
                 isSessionStarted = true,      // Arranca formalmente la sesión por primera vez
                 isWaitingManualStart = false  // Descongela el conteo de la fase
             )
-            _sessionState.value = runningState
-            updateNotification(runningState)
+            updateServiceState(runningState, syncToWear = true)
         }
     }
 
@@ -346,8 +400,7 @@ class SkateSessionService : Service() {
             return
         }
         val updatedState = currentState.copy(isPaused = !currentState.isPaused)
-        _sessionState.value = updatedState
-        updateNotification(updatedState)
+        updateServiceState(updatedState, syncToWear = true)
     }
 
     private fun triggerVibrationAlert() {
@@ -377,14 +430,16 @@ class SkateSessionService : Service() {
         }
     }
 
-    private fun finishSession() {
+    private fun finishSession(syncToWear: Boolean = true) {
         val finalState = _sessionState.value.copy(
             isRunning = false,
             isPaused = false,
             isWaitingManualStart = false,
             currentPhase = SkateSessionPhase.COMPLETED
         )
-        _sessionState.value = finalState
+
+        continuousVibrator.stopVibration()
+        updateServiceState(finalState, syncToWear = syncToWear)
 
         currentRoomSession?.let { session ->
             serviceScope.launch(Dispatchers.IO) {
@@ -402,7 +457,7 @@ class SkateSessionService : Service() {
     }
 
     private fun stopSession() {
-        finishSession()
+        finishSession(syncToWear = true)
     }
 
     // --- NOTIFICACIÓN ---
@@ -458,7 +513,7 @@ class SkateSessionService : Service() {
             .setContentTitle(title)
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_media_play)
-            .setContentIntent(mainTapPendingIntent) // <-- Vincula el toque del cuerpo de la notificación
+            .setContentIntent(mainTapPendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_MAX)               // Máxima prioridad
@@ -470,7 +525,7 @@ class SkateSessionService : Service() {
             builder.setFullScreenIntent(
                 fullScreenPendingIntent,
                 true
-            ) // Forzar que la pantalla se encienda y muestre la alerta
+            )
         }
 
         // 2. Agregar BOTÓN DE ACCIÓN rápido en la barra de notificación
@@ -534,7 +589,7 @@ class SkateSessionService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Cronómetro de Sesión de Skate",
-                NotificationManager.IMPORTANCE_HIGH // Subir la importancia a HIGH para permitir alertas táctiles
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 200, 500)
