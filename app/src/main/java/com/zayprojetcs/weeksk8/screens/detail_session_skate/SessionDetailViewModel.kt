@@ -2,18 +2,20 @@ package com.zayprojetcs.weeksk8.screens.detail_session_skate
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetStartSessionFlow
-import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionPhase
-import com.zayprojetcs.weeksk8.core.services.session_skate.model.SkateSessionStateModel
+import com.zaysk8.core.model.SkateSessionPhase
+import com.zaysk8.core.model.SkateSessionStateModel
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.helper.DetailSessionUiManager
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.ActiveSessionUiState
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PropertyStatus
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.SessionDetailUiState
 import com.zayprojetcs.weeksk8.utils.formatSecondsToHHMMSS
 import com.zayprojetcs.weeksk8.utils.formatSecondsToMMSS
-import com.zaysk8.core.model.SessionPhase
+import com.zayprojetcs.weeksk8.utils.getRequiredSessionPermissionsGranted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -21,6 +23,8 @@ import kotlinx.coroutines.flow.stateIn
 
 class SessionDetailViewModel(application: Application) : AndroidViewModel(application) {
 
+
+    private val _uiState = MutableStateFlow(SessionDetailUiState())
 
     val uiState: StateFlow<SessionDetailUiState> = combine(
         application.repoRoomGetStartSessionFlow(),
@@ -40,25 +44,25 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
     ): SessionDetailUiState {
         if (session == null) return SessionDetailUiState(isLoading = true)
 
-        val currentPhase = mapDomainPhaseToUiPhase(serviceState.currentPhase)
+        val currentPhase = serviceState.currentPhase
 
         val warmupStatus = when {
             session.warmupMinutes == 0 -> PropertyStatus.DISABLED
-            currentPhase == SessionPhase.WARMUP -> PropertyStatus.IN_PROGRESS
-            serviceState.isSessionStarted && currentPhase != SessionPhase.WARMUP -> PropertyStatus.COMPLETED
+            currentPhase == SkateSessionPhase.WARMUP -> PropertyStatus.IN_PROGRESS
+            serviceState.isSessionStarted && currentPhase != SkateSessionPhase.WARMUP -> PropertyStatus.COMPLETED
             else -> PropertyStatus.PENDING
         }
 
         val skateRoundsStatus = when (currentPhase) {
-            SessionPhase.SKATE_RUNNING, SessionPhase.REST_RUNNING -> PropertyStatus.IN_PROGRESS
-            SessionPhase.COOL_DOWN, SessionPhase.EXTRA_TIME_RUNNING, SessionPhase.FINISHED -> PropertyStatus.COMPLETED
+            SkateSessionPhase.SKATE, SkateSessionPhase.REST -> PropertyStatus.IN_PROGRESS
+            SkateSessionPhase.STRETCHING, SkateSessionPhase.EXTRA_TIME, SkateSessionPhase.COMPLETED -> PropertyStatus.COMPLETED
             else -> PropertyStatus.PENDING
         }
 
         val cooldownStatus = when {
             session.cooldownMinutes == 0 -> PropertyStatus.DISABLED
-            currentPhase == SessionPhase.COOL_DOWN -> PropertyStatus.IN_PROGRESS
-            currentPhase == SessionPhase.FINISHED -> PropertyStatus.COMPLETED
+            currentPhase == SkateSessionPhase.STRETCHING -> PropertyStatus.IN_PROGRESS
+            currentPhase == SkateSessionPhase.COMPLETED -> PropertyStatus.COMPLETED
             else -> PropertyStatus.PENDING
         }
 
@@ -80,19 +84,11 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
             warmupStatus = warmupStatus,
             skateRoundsStatus = skateRoundsStatus,
             cooldownStatus = cooldownStatus,
+            permissionSessionGranted = application.getRequiredSessionPermissionsGranted(),
             isLoading = false
         )
+
     }
 
-    private fun mapDomainPhaseToUiPhase(servicePhase: SkateSessionPhase): SessionPhase {
-        return when (servicePhase) {
-            SkateSessionPhase.WARMUP -> SessionPhase.WARMUP
-            SkateSessionPhase.SKATE -> SessionPhase.SKATE_RUNNING
-            SkateSessionPhase.REST -> SessionPhase.REST_RUNNING
-            SkateSessionPhase.EXTRA_TIME -> SessionPhase.EXTRA_TIME_RUNNING
-            SkateSessionPhase.STRETCHING -> SessionPhase.COOL_DOWN
-            SkateSessionPhase.COMPLETED -> SessionPhase.FINISHED
-        }
-    }
 }
 
