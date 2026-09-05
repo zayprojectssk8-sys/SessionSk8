@@ -53,9 +53,10 @@ class SkateSessionService : Service() {
     private var extraTimeDurationSec = 0L
     private var stretchingDurationSec = 0L
 
-    // Módulos de Sincronización y Retroalimentación
+    // Módulos de Sincronización, Sensores y Retroalimentación
     private lateinit var continuousVibrator: ContinuousVibrator
     private lateinit var sessionSyncManager: SessionSyncManager
+    private lateinit var sensorSessionManager: SensorSessionManager
 
     companion object {
         const val ACTION_START_SESSION = "ACTION_START_SESSION"
@@ -76,6 +77,11 @@ class SkateSessionService : Service() {
         super.onCreate()
         continuousVibrator = ContinuousVibrator(this)
         sessionSyncManager = SessionSyncManager(applicationContext)
+
+        // Inicialización de Base de Datos y SensorSessionManager
+        sensorSessionManager = SensorSessionManager(
+            context = applicationContext
+        )
 
         // Comenzar a escuchar eventos enviados desde el Reloj (Wear OS)
         observeWearableSync()
@@ -99,6 +105,15 @@ class SkateSessionService : Service() {
                     // Si el usuario presionó "Iniciar" o "Siguiente Ronda" desde el reloj, detener la vibración del celular
                     if (currentLocalState.isWaitingManualStart && !remoteState.isWaitingManualStart) {
                         continuousVibrator.stopVibration()
+                        // CAMBIO AQUÍ: Transición suave de fase activada desde Wear OS
+                        sensorSessionManager.switchPhase(remoteState.currentPhase.name)
+                        // Arrancar recolección de sensores al confirmar la fase desde el reloj
+                        currentRoomSession?.idSession?.let { sessionId ->
+                            sensorSessionManager.startPhase(
+                                sessionId,
+                                remoteState.currentPhase.name
+                            )
+                        }
                     }
 
                     // Si el reloj detuvo la sesión
@@ -153,6 +168,8 @@ class SkateSessionService : Service() {
 
     private fun loadSessionAndStart(sessionId: Long) {
         serviceScope.launch {
+            DetailSessionUiManager.resetState()
+
             val session = application.repoRoomGetIdSession(sessionId) ?: return@launch
 
             currentRoomSession = session
@@ -264,11 +281,15 @@ class SkateSessionService : Service() {
 
     /**
      * Al llegar a 00:00 en una fase:
+     * - Se detiene la recolección de sensores de la fase previa.
      * - Se prepara la siguiente fase con su tiempo correspondiente.
-     * - SE ACTIVA `isWaitingManualStart = true` para congelar el tiempo de fase.
+     * - SE ACTIVA `isWaitingManualStart = true` para congelar el tiempo de la nueva fase.
      * - `isPaused` se mantiene en `false` para que el tiempo general continúe.
      */
     private fun handlePhaseCompletion(state: SkateSessionStateModel, currentGeneralTime: Long) {
+        // Detener la lectura de sensores al terminar la fase actual
+        sensorSessionManager.stopAll()
+
         val (nextPhase, nextRound, duration) = calculateNextPhaseAndRound(state)
 
         if (nextPhase == SkateSessionPhase.COMPLETED) {
@@ -361,7 +382,7 @@ class SkateSessionService : Service() {
     }
 
     /**
-     * Inicia el temporizador de la fase actual al presionar el botón
+     * Inicia el temporizador y activa el rastreo de sensores para la fase actual al presionar el botón.
      */
     private fun startNextPhaseManually() {
         val currentState = _sessionState.value
@@ -374,6 +395,14 @@ class SkateSessionService : Service() {
                 isWaitingManualStart = false  // Descongela el conteo de la fase
             )
             updateServiceState(runningState, syncToWear = true)
+
+            // CAMBIO AQUÍ: Usas switchPhase sin necesidad de pedir el idSession de nuevo
+            sensorSessionManager.switchPhase(runningState.currentPhase.name)
+
+            // Iniciar la lectura de sensores con el identificador de la fase activa (ej. "WARMUP", "SKATE")
+            currentRoomSession?.idSession?.let { sessionId ->
+                sensorSessionManager.startPhase(sessionId, runningState.currentPhase.name)
+            }
         }
     }
 
@@ -401,6 +430,15 @@ class SkateSessionService : Service() {
         }
         val updatedState = currentState.copy(isPaused = !currentState.isPaused)
         updateServiceState(updatedState, syncToWear = true)
+
+        // Pausar o reanudar la recolección de métricas de sensores
+        currentRoomSession?.idSession?.let { sessionId ->
+            if (updatedState.isPaused) {
+                sensorSessionManager.stopAll()
+            } else {
+                sensorSessionManager.startPhase(sessionId, updatedState.currentPhase.name)
+            }
+        }
     }
 
     private fun triggerVibrationAlert() {
@@ -438,6 +476,8 @@ class SkateSessionService : Service() {
             currentPhase = SkateSessionPhase.COMPLETED
         )
 
+        // Detener recolección de sensores y vibración
+        sensorSessionManager.stopAll()
         continuousVibrator.stopVibration()
         updateServiceState(finalState, syncToWear = syncToWear)
 
@@ -607,6 +647,10 @@ class SkateSessionService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        if (::sensorSessionManager.isInitialized) {
+            sensorSessionManager.destroy()
+        }
+        DetailSessionUiManager.resetState()
         serviceScope.cancel()
         super.onDestroy()
     }
