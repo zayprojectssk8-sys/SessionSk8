@@ -2,21 +2,11 @@ package com.zayprojetcs.weeksk8.utils
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import android.content.Context
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.google.android.gms.wearable.Node
 import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
 import com.zayprojetcs.weeksk8.core.helper.model.WearableBrand
-
-fun Context.isBluetoothOff(): Boolean {
-    val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-    val bluetoothAdapter = bluetoothManager?.adapter
-
-    // Retorna true si el dispositivo no tiene Bluetooth o si está apagado
-    return bluetoothAdapter == null || !bluetoothAdapter.isEnabled
-}
 
 @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
 fun BluetoothAdapter.getBondedDevicesAdapter(
@@ -40,30 +30,7 @@ fun BluetoothAdapter.getBondedDevicesAdapter(
         val isWearOs = matchingNode != null
         val isInstalled = matchingNode?.let { nodesWithApp.contains(it.id) } ?: false
 
-        val brand = when {
-            name.contains("Galaxy Watch", ignoreCase = true) || name.contains(
-                "Samsung",
-                ignoreCase = true
-            ) -> WearableBrand.SAMSUNG
-
-            name.contains("Pixel Watch", ignoreCase = true) || name.contains(
-                "Google",
-                ignoreCase = true
-            ) -> WearableBrand.GOOGLE
-
-            name.contains("HUAWEI", ignoreCase = true) || name.contains(
-                "Band",
-                ignoreCase = true
-            ) -> WearableBrand.HUAWEI
-
-            name.contains("Garmin", ignoreCase = true) -> WearableBrand.GARMIN
-            name.contains("Mi Smart Band", ignoreCase = true) || name.contains(
-                "Xiaomi",
-                ignoreCase = true
-            ) -> WearableBrand.XIAOMI
-
-            else -> WearableBrand.UNKNOWN
-        }
+        val brand = getTypeBrandWearOs(device.name)
 
         // Solo agregamos si encaja en alguna categoría relevante
         if (brand != WearableBrand.UNKNOWN || isWearOs) {
@@ -79,7 +46,37 @@ fun BluetoothAdapter.getBondedDevicesAdapter(
         }
 
     }
-        Log.wtf(javaClass.simpleName, " getBondedWearables getBondedDevicesAdapter detectedList $detectedList")
+    Log.wtf(
+        javaClass.simpleName,
+        " getBondedWearables getBondedDevicesAdapter detectedList $detectedList"
+    )
 
     return detectedList
+}
+
+fun getTypeBrandWearOs(name: String): WearableBrand {
+    return when {
+        name.contains("Galaxy Watch", ignoreCase = true) || name.contains(
+            "Samsung",
+            ignoreCase = true
+        ) -> WearableBrand.SAMSUNG
+
+        name.contains("Pixel Watch", ignoreCase = true) || name.contains(
+            "Google",
+            ignoreCase = true
+        ) -> WearableBrand.GOOGLE
+
+        name.contains("HUAWEI", ignoreCase = true) || name.contains(
+            "Band",
+            ignoreCase = true
+        ) -> WearableBrand.HUAWEI
+
+        name.contains("Garmin", ignoreCase = true) -> WearableBrand.GARMIN
+        name.contains("Mi Smart Band", ignoreCase = true) || name.contains(
+            "Xiaomi",
+            ignoreCase = true
+        ) -> WearableBrand.XIAOMI
+
+        else -> WearableBrand.UNKNOWN
+    }
 }

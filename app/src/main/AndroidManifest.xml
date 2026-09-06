@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" /> <!-- Android 14+ -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Android 13+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Requiere AL MENOS UNO de estos permisos para tipo health -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
@@ -14,6 +13,14 @@
 
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Permiso normal (se otorga automáticamente, no pide confirmación al usuario) -->
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+
+    <!-- Permisos de Ubicación -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
 
     <application
         android:allowBackup="false"
@@ -27,12 +34,23 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:theme="@style/Theme.WeekSk8">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- 2. Intent Filter para responder a RemoteActivityHelper desde el reloj -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="create_session"
+                    android:scheme="projectssk8" />
             </intent-filter>
         </activity>
 
@@ -44,6 +62,18 @@
                 <data
                     android:host="*"
                     android:pathPrefix="/"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+        <!-- Listener para despertar al teléfono cuando el reloj cambie el DataClient -->
+        <service
+            android:name=".core.services.session_skate.PhoneWearableListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/skate_session/state_sync"
                     android:scheme="wear" />
             </intent-filter>
         </service>

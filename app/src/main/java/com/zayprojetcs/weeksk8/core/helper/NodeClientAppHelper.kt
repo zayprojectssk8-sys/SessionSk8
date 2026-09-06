@@ -16,6 +16,7 @@ import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
 import com.zayprojetcs.weeksk8.utils.getBondedDevicesAdapter
+import com.zayprojetcs.weeksk8.utils.getTypeBrandWearOs
 import com.zaysk8.core.utils.CAPABILITY_CLIENT_NAME
 import com.zaysk8.core.utils.MESSAGE_PATH_PHONE_TO_WEAR_OPEN_APP
 import com.zaysk8.core.utils.MESSAGE_PATH_WEAR_TO_PHONE_UNPAIR_CONFIRMED
@@ -38,6 +39,38 @@ class NodeClientAppHelper(private val context: Context) {
     private val remoteActivityHelper = RemoteActivityHelper(context)
     private val messageClient = Wearable.getMessageClient(context)
 
+    /**
+     * Obtiene la lista de todos los dispositivos Wear OS conectados físicamente al teléfono.
+     */
+    suspend fun getConnectedNodes(): DeviceWearable? {
+        return try {
+            val nodeConnect = nodeClient.connectedNodes.await().firstOrNull { it.isNearby }
+            nodeConnect?.let { itNode ->
+
+                val nodesWithApp = try {
+                    capabilityClient.getCapability(
+                        CAPABILITY_CLIENT_NAME,
+                        CapabilityClient.FILTER_REACHABLE
+                    )
+                        .await().nodes.map { it.id }.toSet()
+                } catch (_: Exception) {
+                    emptySet()
+                }
+
+                val isInstalled = itNode.let { nodesWithApp.contains(it.id) }
+
+                DeviceWearable(
+                    name = itNode.displayName,
+                    brand = getTypeBrandWearOs(itNode.displayName),
+                    nodeId = itNode.id,
+                    isWearOs = true,
+                    isAppInstalled = isInstalled
+                )
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     // Flujo para escuchar mensajes entrantes
     fun observeMessages(): Flow<MessageEvent> = callbackFlow {
@@ -147,7 +180,7 @@ class NodeClientAppHelper(private val context: Context) {
     suspend fun unpairWearable(nodeId: String, timeoutMs: Long = 5000L): Boolean {
         Log.wtf(javaClass.simpleName, "CONECTEEED: unpairWearable $nodeId")
 
-        return  try {
+        return try {
             withTimeoutOrNull(timeoutMs.milliseconds) {
                 coroutineScope {
                     Log.wtf(javaClass.simpleName, "CONECTEEED withTimeoutOrNull  nodeId: $nodeId")
@@ -204,7 +237,7 @@ class NodeClientAppHelper(private val context: Context) {
         }
     }
 
-     suspend fun sendConnectionUnpair(nodeId: String) {
+    suspend fun sendConnectionUnpair(nodeId: String) {
         try {
             Log.wtf(
                 javaClass.simpleName,
@@ -223,3 +256,4 @@ class NodeClientAppHelper(private val context: Context) {
         }
     }
 }
+

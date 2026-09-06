@@ -7,10 +7,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.zayprojetcs.weeksk8.screens.create_session_skate.CreateSessionSkateScreen
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.SessionDetailScreen
 import com.zayprojetcs.weeksk8.screens.home_nav.routes.HomeNavigationRoutes
-import com.zayprojetcs.weeksk8.screens.link_device_smartwatch.LinkDeviceSmartWatchScreen
 import com.zayprojetcs.weeksk8.screens.menu.MenuScreen
 import com.zayprojetcs.weeksk8.ui.theme.ForceOrientationPortrait
 
@@ -42,7 +42,13 @@ fun HomeNavigationScreen(viewModel: HomeNavigationViewModel = viewModel()) {
                     navController.navigate(HomeNavigationRoutes.DetailSessionSkate)
                 })
         }
-        composable<HomeNavigationRoutes.CreateSessionSkate> {
+        composable<HomeNavigationRoutes.CreateSessionSkate>(
+            deepLinks = listOf(
+                navDeepLink<HomeNavigationRoutes.CreateSessionSkate>(
+                    basePath = "projectssk8://create_session"
+                )
+            )
+        ) {
             CreateSessionSkateScreen(onNavigateBackPress = {
                 navController.popBackStack()
             })
@@ -52,10 +58,5 @@ fun HomeNavigationScreen(viewModel: HomeNavigationViewModel = viewModel()) {
             SessionDetailScreen()
         }
 
-        composable<HomeNavigationRoutes.LinkDeviceSmartWatch> {
-            LinkDeviceSmartWatchScreen(onFinished = {
-                navController.popBackStack()
-            })
-        }
     }
 }

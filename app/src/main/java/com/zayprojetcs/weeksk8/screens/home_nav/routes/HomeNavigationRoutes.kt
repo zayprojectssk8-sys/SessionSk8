@@ -8,6 +8,8 @@ sealed class HomeNavigationRoutes() {
 
     @Serializable
     object Menu : HomeNavigationRoutes()
+
+
     @Serializable
     object LinkDeviceSmartWatch : HomeNavigationRoutes()
 
@@ -17,11 +19,4 @@ sealed class HomeNavigationRoutes() {
     @Serializable
     object DetailSessionSkate : HomeNavigationRoutes()
 
-    @Serializable
-    object DashBoard : HomeNavigationRoutes()
-
-    @Serializable
-    object CreateDaySkate : HomeNavigationRoutes()
-    @Serializable
-    object StartDaySkate : HomeNavigationRoutes()
 }
