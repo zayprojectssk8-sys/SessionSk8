@@ -3,13 +3,9 @@ package com.sk8.appwatch.presentation.screen.home_watch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -18,36 +14,17 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
-import com.sk8.appwatch.presentation.screen.app_empty_communication.AppEmptyCommunicationScreen
 import com.sk8.appwatch.presentation.screen.home_watch.routes.WearHomeNavigationRoutes
 import com.sk8.appwatch.presentation.screen.link_device_phone.LinkDevicePhoneScreen
-import com.sk8.appwatch.presentation.screen.skate_session.SkateSessionScreen
+import com.sk8.appwatch.presentation.screen.session_skate.WearSessionScreen
 
 @Composable
 fun WearAppNavigation(
-    claveAppCommunication: String? = null,
     viewModel: WearAppViewModel = viewModel(),
     navController: NavHostController = rememberSwipeDismissableNavController()
 ) {
 
     val linkDeviceSmartWatchUiState by viewModel.linkDeviceSmartWatchUiState.collectAsStateWithLifecycle()
-
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.validateDevicePhoneConnected()
-            }
-        }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
 
     if (linkDeviceSmartWatchUiState.isLoader) {
         Box(
@@ -61,22 +38,18 @@ fun WearAppNavigation(
         return
     }
 
-    val wearDestinationStart = when {
-        linkDeviceSmartWatchUiState.connectedNodeId != null -> WearHomeNavigationRoutes.SESSION_METRICS
-        claveAppCommunication == null && linkDeviceSmartWatchUiState.connectedNodeId == null -> WearHomeNavigationRoutes.APP_EMPTY_COMMUNICATION
-        else -> WearHomeNavigationRoutes.LINK_DEVICE_PHONE
+
+    val wearDestinationStart = if (linkDeviceSmartWatchUiState.isPermissionsGranted) {
+        WearHomeNavigationRoutes.SESSION_METRICS
+    } else {
+        WearHomeNavigationRoutes.PERMISSIONS_WATCH
     }
 
     SwipeDismissableNavHost(
         navController = navController,
         startDestination = wearDestinationStart
     ) {
-        // Pantalla 1: Menú Principal / Inicio de Sesión
-        composable(WearHomeNavigationRoutes.APP_EMPTY_COMMUNICATION) {
-            AppEmptyCommunicationScreen()
-        }
-
-        composable(WearHomeNavigationRoutes.LINK_DEVICE_PHONE) {
+        composable(WearHomeNavigationRoutes.PERMISSIONS_WATCH) {
             LinkDevicePhoneScreen(onSuccessPermission = {
                 navController.navigate(WearHomeNavigationRoutes.SESSION_METRICS)
             })
@@ -84,7 +57,7 @@ fun WearAppNavigation(
 
         // Pantalla 2: Métrica en Vivo (La pantalla que creamos previamente)
         composable(WearHomeNavigationRoutes.SESSION_METRICS) {
-            SkateSessionScreen(claveAppCommunication = claveAppCommunication)
+            WearSessionScreen()
         }
     }
 }

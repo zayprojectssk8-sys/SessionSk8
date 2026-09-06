@@ -1,32 +1,44 @@
 package com.sk8.appwatch.presentation.screen.skate_session
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Skateboarding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.wear.compose.material.MaterialTheme
-import androidx.wear.compose.material.Text
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Skateboarding
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
-import androidx.wear.compose.material.*
+import androidx.wear.compose.material.Card
+import androidx.wear.compose.material.ChipDefaults
+import androidx.wear.compose.material.CompactChip
+import androidx.wear.compose.material.Icon
+import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.PositionIndicator
+import androidx.wear.compose.material.Scaffold
+import androidx.wear.compose.material.Text
+import androidx.wear.compose.material.TimeText
+import androidx.wear.compose.material.Vignette
+import androidx.wear.compose.material.VignettePosition
 import com.sk8.appwatch.presentation.screen.skate_session.ui_state.SkateSessionUiStateModel
+import com.zaysk8.core.utils.formatLocale
 
 @Composable
 fun WearMetricsSessionScreen(
@@ -208,11 +220,8 @@ private fun formatSeconds(seconds: Long): String {
     val hrs = seconds / 3600
     val mins = (seconds % 3600) / 60
     val secs = seconds % 60
-    return if (hrs > 0) {
-        String.format("%02d:%02d:%02d", hrs, mins, secs)
-    } else {
-        String.format("%02d:%02d", mins, secs)
-    }
+    return if (hrs > 0) arrayOf(hrs, mins, secs).formatLocale("%02d:%02d:%02d")
+    else arrayOf(mins, secs).formatLocale("%02d:%02d")
 }
 
 @Composable
@@ -226,7 +235,7 @@ fun SkateSessionScreen(
 
     LaunchedEffect(key1 = Unit) {
         if (claveAppCommunication != null) {
-            viewModel.loadCompleteLinkPhone(claveAppCommunication)
+            //viewModel.loadCompleteLinkPhone(claveAppCommunication)
         }
     }
 
@@ -237,11 +246,11 @@ fun SkateSessionScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (uiState.isTracking) {
+        /*if (uiState.isTracking) {
             WearMetricsSessionScreen(metrics = uiState)
         } else {
             WaitScreen()
-        }
+        }*/
     }
 }
 

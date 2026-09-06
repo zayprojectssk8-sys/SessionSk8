@@ -13,10 +13,15 @@ fun getFormatDurationSession(timeMinutes: Int): String {
                 "${timeMinutes / 60} horas"
             } else {
                 val hours = timeMinutes / 60f
-                val formattedHours = String.format(Locale.US, "%.1f", hours)
+                val formattedHours = arrayOf(hours).formatLocale("%.1f")
                 "$formattedHours horas"
             }
         }
     }
 
 }
+
+fun Array<out Any?>.formatLocale(format: String): String {
+    return String.format(Locale.getDefault(), format, this)
+}
+

@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.wear.remote.interactions)
     implementation(libs.androidx.wear.tooling.preview)
     implementation(libs.compose.ui.tooling)
     implementation(libs.play.services.wearable)
@@ -73,6 +74,12 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-service:2.8.7")
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")
+
+    // Wear Remote Interactions
+    implementation("androidx.wear:wear-remote-interactions:1.1.0")
+
+    // Permite usar .await() en Tasks de Google Play Services (NodeClient)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
 
     androidTestImplementation(platform(libs.androidx.compose.bom))

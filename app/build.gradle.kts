@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "com.zayprojetcs.weeksk8"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -81,6 +81,7 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")
 
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

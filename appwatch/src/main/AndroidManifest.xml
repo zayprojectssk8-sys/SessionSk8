@@ -66,6 +66,19 @@
         </service>
 
         <service
+            android:name=".presentation.core.services.WearDataListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <!-- RUTA EXACTA de tu SessionSyncManager -->
+                <data
+                    android:host="*"
+                    android:pathPrefix="/skate_session/state_sync"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
+        <service
             android:name=".presentation.core.services.SkateTrackingService"
             android:enabled="true"
             android:exported="false"

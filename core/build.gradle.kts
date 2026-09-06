@@ -37,7 +37,9 @@ dependencies {
     implementation(libs.material)
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")
-    
+
+    implementation("com.google.android.gms:play-services-wearable:18.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

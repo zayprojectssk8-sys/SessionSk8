@@ -5,13 +5,11 @@
 
 package com.sk8.appwatch.presentation
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.sk8.appwatch.presentation.screen.home_watch.WearAppNavigation
 import com.sk8.appwatch.presentation.theme.WeekSk8Theme
-import com.zaysk8.core.utils.SOURCE_NODE_ID
 
 
 class MainActivity : ComponentActivity() {
@@ -21,23 +19,12 @@ class MainActivity : ComponentActivity() {
         // Permitir que la pantalla se encienda y se muestre sobre el bloqueo
         setShowWhenLocked(true)
         setTurnScreenOn(true)
-
-        handleIntent(intent = intent)
-    }
-
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        handleIntent(intent)
-    }
-
-    private fun handleIntent(intent: Intent?) {
-        val nodeId = intent?.getStringExtra(SOURCE_NODE_ID)
-
         setContent {
             WeekSk8Theme {
-                WearAppNavigation(nodeId)
+                WearAppNavigation()
             }
         }
     }
+
+
 }
