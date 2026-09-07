@@ -21,13 +21,11 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _menuUiState = MutableStateFlow(MenuUiStateModel())
     val menuUiState: StateFlow<MenuUiStateModel> = combine(
-        dataStoreAppManager.deviceConnectBluetooth,
         application.repoRoomCountHistorySessionSkate(),
         application.repoRoomGetStartSessionFlow(),
         _menuUiState
-    ) { connectedDevice, historyCount, openOrCreatedSession, mapUiState ->
+    ) {  historyCount, openOrCreatedSession, mapUiState ->
         mapUiState.copy(
-            connectedDevice = connectedDevice,
             historyCountSession = historyCount,
             sessionWithRoundsTrick = openOrCreatedSession,
             isLoading = false

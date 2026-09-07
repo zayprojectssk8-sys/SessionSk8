@@ -19,4 +19,7 @@ sealed class HomeNavigationRoutes() {
     @Serializable
     object DetailSessionSkate : HomeNavigationRoutes()
 
+    @Serializable
+    object DetailSessionCloseSkate : HomeNavigationRoutes()
+
 }

@@ -11,11 +11,11 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.zayprojetcs.weeksk8.MainActivity
 import com.zayprojetcs.weeksk8.core.helper.manager.SensorSessionManager
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetIdSession
-import com.zayprojetcs.weeksk8.core.room.repo.repoRoomInsertSession
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.helper.DetailSessionUiManager
 import com.zaysk8.core.helper.SessionSyncManager
 import com.zaysk8.core.helper.SyncTimestamps
@@ -45,9 +45,8 @@ class SkateSessionService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var timerJob: Job? = null
 
-    private var currentRoomSession: RoomSession? = null
-
     // Duraciones individuales en segundos
+    private var totalSessionDurationSec: String = ""
     private var warmupDurationSec = 0L
     private var skatePerRoundDurationSec = 0L   // Tiempo exacto de UNA ronda de patinaje
     private var restPerRoundDurationSec = 0L    // Tiempo exacto de UN descanso
@@ -71,6 +70,8 @@ class SkateSessionService : Service() {
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "skate_session_channel"
 
+
+        private val _currentRoomSession = MutableStateFlow<RoomSession?>(null)
         private val _sessionState = MutableStateFlow(SkateSessionStateModel())
         val sessionState: StateFlow<SkateSessionStateModel> = _sessionState.asStateFlow()
     }
@@ -142,8 +143,8 @@ class SkateSessionService : Service() {
 
                 if (remoteState.isSessionStarted) {
                     sensorSessionManager.switchPhase(remoteState.currentPhase.name)
-                    currentRoomSession?.idSession?.let { sessionId ->
-                        sensorSessionManager.startPhase(sessionId, remoteState.currentPhase.name)
+                    _currentRoomSession.value?.let { sessionId ->
+                        sensorSessionManager.startPhase(sessionId.idSession, remoteState.currentPhase.name)
                     }
                 }
             }
@@ -168,9 +169,9 @@ class SkateSessionService : Service() {
                     if (remoteState.isSessionStarted && !currentLocalState.isSessionStarted) {
                         continuousVibrator.stopVibration()
                         sensorSessionManager.switchPhase(remoteState.currentPhase.name)
-                        currentRoomSession?.idSession?.let { sessionId ->
+                        _currentRoomSession.value?.let { sessionId ->
                             sensorSessionManager.startPhase(
-                                sessionId,
+                                sessionId.idSession,
                                 remoteState.currentPhase.name
                             )
                         }
@@ -184,9 +185,9 @@ class SkateSessionService : Service() {
                     if (currentLocalState.isWaitingManualStart && !remoteState.isWaitingManualStart) {
                         continuousVibrator.stopVibration()
                         sensorSessionManager.switchPhase(remoteState.currentPhase.name)
-                        currentRoomSession?.idSession?.let { sessionId ->
+                        _currentRoomSession.value?.let { sessionId ->
                             sensorSessionManager.startPhase(
-                                sessionId,
+                                sessionId.idSession,
                                 remoteState.currentPhase.name
                             )
                         }
@@ -194,12 +195,12 @@ class SkateSessionService : Service() {
 
                     // 3. Pausa / Reanudación desde el reloj
                     if (remoteState.isPaused != currentLocalState.isPaused) {
-                        currentRoomSession?.idSession?.let { sessionId ->
+                        _currentRoomSession.value?.let { sessionId ->
                             if (remoteState.isPaused) {
                                 sensorSessionManager.stopAll()
                             } else {
                                 sensorSessionManager.startPhase(
-                                    sessionId,
+                                    sessionId.idSession,
                                     remoteState.currentPhase.name
                                 )
                             }
@@ -243,21 +244,28 @@ class SkateSessionService : Service() {
         serviceScope.launch {
             DetailSessionUiManager.resetState()
 
-            val session = application.repoRoomGetIdSession(sessionId) ?: return@launch
-            currentRoomSession = session
-
-            val rounds = if (session.calculatedRounds > 0) session.calculatedRounds else 1
-
-            warmupDurationSec = session.warmupMinutes * 60L
-            skatePerRoundDurationSec = (session.totalSkateTime * 60L) / rounds
-            restPerRoundDurationSec = (session.totalRestTime * 60L) / rounds
-            extraTimeDurationSec = (session.marginMinutes ?: 0) * 60L
-            stretchingDurationSec = session.cooldownMinutes * 60L
+            val session = getDataSession(sessionId)
+            session ?: return@launch
 
             withContext(Dispatchers.Default) {
                 startSession(session)
             }
         }
+    }
+
+    suspend fun getDataSession(sessionId: Long): RoomSession? {
+        val session = application.repoRoomGetIdSession(sessionId) ?: return null
+        _currentRoomSession.value = session
+
+        val rounds = if (session.calculatedRounds > 0) session.calculatedRounds else 1
+
+        totalSessionDurationSec = session.getDurationTimeSession()
+        warmupDurationSec = session.warmupMinutes * 60L
+        skatePerRoundDurationSec = (session.totalSkateTime * 60L) / rounds
+        restPerRoundDurationSec = (session.totalRestTime * 60L) / rounds
+        extraTimeDurationSec = (session.marginMinutes ?: 0) * 60L
+        stretchingDurationSec = session.cooldownMinutes * 60L
+        return session
     }
 
     private fun startSession(session: RoomSession) {
@@ -443,6 +451,11 @@ class SkateSessionService : Service() {
 
     private fun startNextPhaseManually() {
         val currentState = _sessionState.value
+        serviceScope.launch {
+            _currentRoomSession.value?.let {
+                getDataSession(it.idSession)
+            }
+        }
         if (currentState.isRunning && currentState.isWaitingManualStart) {
             continuousVibrator.stopVibration()
 
@@ -455,8 +468,8 @@ class SkateSessionService : Service() {
 
             sensorSessionManager.switchPhase(runningState.currentPhase.name)
 
-            currentRoomSession?.idSession?.let { sessionId ->
-                sensorSessionManager.startPhase(sessionId, runningState.currentPhase.name)
+            _currentRoomSession.value?.let { sessionId ->
+                sensorSessionManager.startPhase(sessionId.idSession, runningState.currentPhase.name)
             }
         }
     }
@@ -479,6 +492,12 @@ class SkateSessionService : Service() {
 
     private fun togglePause() {
         val currentState = _sessionState.value
+
+        serviceScope.launch {
+            _currentRoomSession.value?.let {
+                getDataSession(it.idSession)
+            }
+        }
         if (currentState.isWaitingManualStart) {
             startNextPhaseManually()
             return
@@ -486,11 +505,11 @@ class SkateSessionService : Service() {
         val updatedState = currentState.copy(isPaused = !currentState.isPaused)
         updateServiceState(updatedState, syncToWear = true)
 
-        currentRoomSession?.idSession?.let { sessionId ->
+        _currentRoomSession.value?.let { sessionId ->
             if (updatedState.isPaused) {
                 sensorSessionManager.stopAll()
             } else {
-                sensorSessionManager.startPhase(sessionId, updatedState.currentPhase.name)
+                sensorSessionManager.startPhase(sessionId.idSession, updatedState.currentPhase.name)
             }
         }
     }
@@ -507,15 +526,16 @@ class SkateSessionService : Service() {
         continuousVibrator.stopVibration()
         updateServiceState(finalState, syncToWear = syncToWear)
 
-        currentRoomSession?.let { session ->
+        /*_currentRoomSession.value?.let { session ->
             serviceScope.launch(Dispatchers.IO) {
                 val sessionUpdate = session.copy(
-                    status = "COMPLETED",
+                    status = StatusSession.CLOSED.status,
                     closeDate = System.currentTimeMillis()
                 )
-                application.repoRoomInsertSession(sessionUpdate)
+
+                application.repoRoomUpdateSession(sessionUpdate)
             }
-        }
+        }*/
 
         timerJob?.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -523,6 +543,11 @@ class SkateSessionService : Service() {
     }
 
     private fun stopSession() {
+        serviceScope.launch {
+            _currentRoomSession.value?.let {
+                getDataSession(it.idSession)
+            }
+        }
         finishSession(syncToWear = true)
     }
 
@@ -537,76 +562,120 @@ class SkateSessionService : Service() {
         val generalFormatted = formatTime(state.generalElapsedTimeSec)
         val phaseFormatted = formatTime(state.phaseTimeRemainingSec)
 
-        val title =
-            if (state.currentPhase == SkateSessionPhase.SKATE || state.currentPhase == SkateSessionPhase.REST) {
-                "${state.currentPhase.displayName} - Ronda ${state.currentRound}/${state.totalRounds}"
-            } else {
-                state.currentPhase.displayName
-            }
+        val totalRoundsText = if (state.totalRounds > 0) "${state.totalRounds}" else "∞"
 
-        val content = when {
-            !state.isSessionStarted -> "¡Sesión lista! Toca para INICIAR ($phaseFormatted)"
-            state.isWaitingManualStart -> "¡Siguiente ronda lista! Toca para INICIAR ($phaseFormatted)"
-            else -> "Fase: $phaseFormatted | General: $generalFormatted"
+        // 1. Título formateado de la fase
+        val phaseDisplayName = when (state.currentPhase) {
+            SkateSessionPhase.SKATE, SkateSessionPhase.REST ->
+                "${state.currentPhase.displayName} (${state.currentRound}/$totalRoundsText)"
+
+            else -> state.currentPhase.displayName
         }
 
+        // 2. Encabezado dinámico según el estado
+        val title = when {
+            !state.hasActiveSessionConfig -> "Sin Sesión Configurada"
+            !state.isSessionStarted -> "Sesión Lista para Iniciar"
+            state.isWaitingManualStart -> "🔔 ¡Iniciar $phaseDisplayName!"
+            state.isPaused -> "⏸ Pausado - $phaseDisplayName"
+            else -> "$phaseDisplayName $phaseFormatted"
+        }
+
+        // 3. Subtexto de estado detallado
+        val statusDescription = when {
+            !state.isSessionStarted -> "Toca para abrir la aplicación e iniciar."
+            state.isWaitingManualStart -> "Esperando confirmación para empezar la fase."
+            state.isPaused -> "La sesión se encuentra en pausa."
+            else -> "Sesión en curso..."
+        }
+
+        // 4. Texto corto (para la vista comprimida) y Expandido (BigTextStyle)
+        val shortContent = "TIEMPO TOTAL DE LA SESION: $totalSessionDurationSec"
+        val expandedContent = StringBuilder().apply {
+            append("CONTENIDO DE LA SESSIÓN:\n")
+            if (warmupDurationSec > 0L) {
+                append("CALENTAMIENTO: ${formatTime(warmupDurationSec)} min\n")
+            }
+            if (totalSessionDurationSec != "Abierta (Sin límite)") {
+                append(
+                    "SKATE: $totalRoundsText rondas de ${formatTime(skatePerRoundDurationSec)} min patinando y ${
+                        formatTime(
+                            restPerRoundDurationSec
+                        )
+                    } min descansando.\n"
+                )
+            }
+            if (extraTimeDurationSec > 0L) {
+                append("TIEMPO EXTRA: ${formatTime(extraTimeDurationSec)} min\n")
+            }
+
+            if (stretchingDurationSec > 0L) {
+                append("ESTIRAMIENTO: ${formatTime(stretchingDurationSec)} min")
+            }
+
+        }.toString()
+
+        // Intent para abrir la app al hacer tap en la notificación
         val activityIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-
-        val fullScreenPendingIntent = PendingIntent.getActivity(
+        val contentPendingIntent = PendingIntent.getActivity(
             this,
             200,
             activityIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val mainTapIntent = Intent(this, SkateSessionService::class.java).apply {
-            action =
-                if (state.isWaitingManualStart) ACTION_START_NEXT_PHASE else ACTION_PAUSE_TOGGLE
-        }
-
-        val mainTapPendingIntent = PendingIntent.getService(
-            this,
-            100,
-            mainTapIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
+        // Configuración Base de la Notificación
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
-            .setContentText(content)
+            .setContentText(shortContent)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expandedContent))
+            .setSubText("SESIÓN SKATE - $generalFormatted")
             .setSmallIcon(R.drawable.ic_media_play)
-            .setContentIntent(mainTapPendingIntent)
+            .setContentIntent(contentPendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            // Asigna el color de acento de tu app (ej. verde skate)
+            .setColor(ContextCompat.getColor(this, com.zayprojetcs.weeksk8.R.color.skate_accent))
+
+            // (Opcional) En algunas versiones de Android resalta el fondo con el color de acento
+            .setColorized(true)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
-        if (state.isWaitingManualStart) {
-            builder.setFullScreenIntent(
-                fullScreenPendingIntent,
-                true
-            )
+        // 5. Barra de progreso visual para la fase actual
+        if (state.isSessionStarted && state.phaseTotalDurationSec > 0) {
+            val maxProgress = state.phaseTotalDurationSec.toInt()
+            val elapsedTimeInPhase =
+                (state.phaseTotalDurationSec - state.phaseTimeRemainingSec).toInt()
+            builder.setProgress(maxProgress, elapsedTimeInPhase.coerceIn(0, maxProgress), false)
+        } else {
+            builder.setProgress(0, 0, false)
         }
 
+        // Full screen intent para alertas de inicio de ronda
         if (state.isWaitingManualStart) {
-            val startPhaseIntent = Intent(this, SkateSessionService::class.java).apply {
+            builder.setFullScreenIntent(contentPendingIntent, true)
+        }
+
+        // =========================================================================
+        // ACCIONES DE LA NOTIFICACIÓN
+        // =========================================================================
+
+        // BOTÓN 1: Iniciar / Pausar / Reanudar
+        if (state.isWaitingManualStart || !state.isSessionStarted) {
+            val startIntent = Intent(this, SkateSessionService::class.java).apply {
                 action = ACTION_START_NEXT_PHASE
             }
-            val startPhasePendingIntent = PendingIntent.getService(
+            val startPendingIntent = PendingIntent.getService(
                 this,
                 101,
-                startPhaseIntent,
+                startIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-
-            builder.addAction(
-                R.drawable.ic_media_play,
-                "▶ INICIAR RONDA",
-                startPhasePendingIntent
-            )
+            builder.addAction(R.drawable.ic_media_play, "▶ COMANZAR FASE", startPendingIntent)
         } else {
             val pauseIntent = Intent(this, SkateSessionService::class.java).apply {
                 action = ACTION_PAUSE_TOGGLE
@@ -617,29 +686,32 @@ class SkateSessionService : Service() {
                 pauseIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+            val actionText = if (state.isPaused) "▶ REANUDAR" else "⏸ PAUSAR"
+            val actionIcon =
+                if (state.isPaused) R.drawable.ic_media_play else R.drawable.ic_media_pause
+            builder.addAction(actionIcon, actionText, pausePendingIntent)
 
-            val buttonText = if (state.isPaused) "▶ REANUDAR" else "⏸ PAUSAR"
-            builder.addAction(
-                if (state.isPaused) R.drawable.ic_media_play else R.drawable.ic_media_pause,
-                buttonText,
-                pausePendingIntent
+            // BOTÓN 2: Avanzar de Fase
+            /*val nextPhaseIntent = Intent(this, SkateSessionService::class.java).apply {
+                action = ACTION_START_NEXT_PHASE
+            }
+            val nextPhasePendingIntent = PendingIntent.getService(
+                this,
+                104,
+                nextPhaseIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+            builder.addAction(R.drawable.ic_media_ff, "⏭ SIGUIENTE", nextPhasePendingIntent)*/
         }
 
+        // BOTÓN 3: Terminar Sesión
         val stopIntent = Intent(this, SkateSessionService::class.java).apply {
             action = ACTION_STOP_SESSION
         }
         val stopPendingIntent = PendingIntent.getService(
-            this,
-            103,
-            stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this, 103, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        builder.addAction(
-            R.drawable.ic_menu_close_clear_cancel,
-            "TERMINAR",
-            stopPendingIntent
-        )
+        builder.addAction(R.drawable.ic_menu_close_clear_cancel, "⏹ CANCELAR", stopPendingIntent)
 
         return builder.build()
     }

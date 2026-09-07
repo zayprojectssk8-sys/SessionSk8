@@ -5,12 +5,13 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
+import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager
 import com.zayprojetcs.weeksk8.core.helper.NodeClientAppHelper
 import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.model.combine.CombinedMinuteMetrics
+import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetIdSessionFlow
 import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetSensorMetrics
-import com.zayprojetcs.weeksk8.core.room.repo.repoRoomGetStartSessionFlow
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.helper.DetailSessionUiManager
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.ActiveSessionUiState
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PhaseSensorSummary
@@ -25,10 +26,13 @@ import com.zaysk8.core.helper.SyncTimestamps
 import com.zaysk8.core.model.SkateSessionPhase
 import com.zaysk8.core.model.SkateSessionStateModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -37,6 +41,7 @@ import kotlinx.coroutines.withContext
 
 class SessionDetailViewModel(application: Application) : AndroidViewModel(application) {
 
+    val dataStoreAppManager by lazy { DataStoreAppManager(application.applicationContext) }
     val nodeClientAppHelper by lazy { NodeClientAppHelper(application.applicationContext) }
     val sessionSyncManager by lazy { SessionSyncManager(application.applicationContext) }
 
@@ -85,18 +90,45 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    val uiState: StateFlow<SessionDetailUiState> = combine(
-        application.repoRoomGetStartSessionFlow(),
+    /*val uiState2: StateFlow<SessionDetailUiState> = combine(
+        application.repoRoomGetIdSessionFlow(dataStoreAppManager.currentIdSession!!),
         DetailSessionUiManager.sessionState,
         _phaseSummaries,
         _uiState
     ) { roomSession, serviceState, phaseSummaries, uiState ->
-        mapToUiState(roomSession?.roomSession, serviceState, phaseSummaries, uiState)
+        mapToUiState(roomSession, serviceState, phaseSummaries, uiState)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = SessionDetailUiState(isLoading = true)
-    )
+    )*/
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<SessionDetailUiState> = dataStoreAppManager.currentIdSession
+        .flatMapLatest { sessionId ->
+            if (sessionId == null) {
+                flowOf(
+                    SessionDetailUiState(
+                        isLoading = false,
+                        errorMessage = "No hay sesión seleccionada"
+                    )
+                )
+            } else {
+                combine(
+                    application.repoRoomGetIdSessionFlow(sessionId),
+                    DetailSessionUiManager.sessionState,
+                    _phaseSummaries,
+                    _uiState
+                ) { roomSession, serviceState, phaseSummaries, localUiState ->
+                    mapToUiState(roomSession, serviceState, phaseSummaries, localUiState)
+                }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = SessionDetailUiState(isLoading = true)
+        )
 
     fun onPermissionGranted() {
         _uiState.update { it.copy(permissionSessionGranted = true) }

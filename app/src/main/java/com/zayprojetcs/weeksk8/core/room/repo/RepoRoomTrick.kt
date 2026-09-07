@@ -20,7 +20,7 @@ suspend fun Application.repoRoomInsertListTrick(listRoomTrick: List<RoomTrick>):
     return try {
         val ids = roomTrickDb().insertListTrick(listRoomTrick)
         if (ids.size == listRoomTrick.size && ids.none { it == -1L }) {
-            OperationResult.Success
+            OperationResult.Success(true)
         } else {
             OperationResult.Error("No se pudieron guardar todos los trucos correctamente.")
         }

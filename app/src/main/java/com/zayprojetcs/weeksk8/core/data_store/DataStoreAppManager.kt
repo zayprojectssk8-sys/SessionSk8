@@ -2,38 +2,34 @@ package com.zayprojetcs.weeksk8.core.data_store
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
+import androidx.datastore.preferences.core.longPreferencesKey
 import com.zaysk8.core.data_store.dataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.Json
 
 
 class DataStoreAppManager(private val context: Context) {
 
     companion object {
-        val PAIRED_WEAR_DEVICE_KEY = stringPreferencesKey("paired_wear_device")
+        val CURRENT_ID_SESSION_KEY = longPreferencesKey("currentIdSession")
     }
 
 
-    suspend fun saveDeviceConnectBluetooth(data: DeviceWearable) {
+    suspend fun saveCurrentIdSession(data: Long) {
         context.dataStore.edit { preferences ->
-            preferences[PAIRED_WEAR_DEVICE_KEY] = Json.encodeToString(data)
+            preferences[CURRENT_ID_SESSION_KEY] = data
         }
     }
 
     /** Flow que deserializa los datos del estado de validacion de la cuenta */
-    val deviceConnectBluetooth: Flow<DeviceWearable?> =
+    val currentIdSession: Flow<Long?> =
         context.dataStore.data.map { preferences ->
-            val json = preferences[PAIRED_WEAR_DEVICE_KEY]
-            if (json != null) Json.decodeFromString<DeviceWearable>(json)
-            else null
+            preferences[CURRENT_ID_SESSION_KEY]
         }
 
     suspend fun clearDeviceConnectBluetooth() {
         context.dataStore.edit { prefs ->
-            prefs.remove(PAIRED_WEAR_DEVICE_KEY)
+            prefs.remove(CURRENT_ID_SESSION_KEY)
         }
     }
 }

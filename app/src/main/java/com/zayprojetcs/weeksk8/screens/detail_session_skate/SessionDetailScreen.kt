@@ -52,6 +52,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zayprojetcs.weeksk8.core.helper.model.DeviceWearable
 import com.zayprojetcs.weeksk8.core.room.model.RoomSession
+import com.zayprojetcs.weeksk8.core.room.model.StatusSession
 import com.zayprojetcs.weeksk8.core.services.session_skate.SkateSessionService
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.module.PermissionsSessionScreen
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PhaseSensorSummary
@@ -380,6 +382,7 @@ fun SensorSparklineChart(
 
 @Composable
 fun SessionDetailScreen(
+    onNavigateDetailCloseSession: () -> Unit,
     viewModel: SessionDetailViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -388,6 +391,12 @@ fun SessionDetailScreen(
 
     val activeState = uiState.activeState
     val isWaitingAction = activeState.isWaitingUserAction || !activeState.isSessionStarted
+
+    LaunchedEffect(uiState.session?.status) {
+        if (uiState.session?.status == StatusSession.CLOSED.status) {
+            onNavigateDetailCloseSession()
+        }
+    }
 
     if (!uiState.permissionSessionGranted) {
         PermissionsSessionScreen(onAllPermissionsGranted = {

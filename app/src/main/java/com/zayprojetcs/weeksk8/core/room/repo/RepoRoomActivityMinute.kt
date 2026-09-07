@@ -9,7 +9,7 @@ suspend fun Context.repoRoomInsertActivityMinute(activityMinuteEntity: ActivityM
     return try {
         val id = roomActivityMinuteDb().insert(activityMinuteEntity)
         if (id == -1L) OperationResult.Error("No se pudo guardar la sesión correctamente.")
-        else OperationResult.Success
+        else OperationResult.Success(true)
     } catch (e: Exception) {
         OperationResult.Error(
             message = "Error al guardar la sesión en la base de datos",

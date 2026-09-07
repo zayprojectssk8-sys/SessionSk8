@@ -37,9 +37,7 @@ class AppMessageNodeListenerService : WearableListenerService() {
             val device = nodeClientAppHelper.getBondedWearables()
                 .find { it.nodeId == sourceNodeId }
 
-            device?.let {
-                dataStoreAppManager.saveDeviceConnectBluetooth(it)
-            }
+
         }
     }
 }

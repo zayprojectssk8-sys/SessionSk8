@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.zayprojetcs.weeksk8.screens.create_session_skate.CreateSessionSkateScreen
+import com.zayprojetcs.weeksk8.screens.detail_session_close.SessionDetailClose
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.SessionDetailScreen
 import com.zayprojetcs.weeksk8.screens.home_nav.routes.HomeNavigationRoutes
 import com.zayprojetcs.weeksk8.screens.menu.MenuScreen
@@ -55,7 +56,15 @@ fun HomeNavigationScreen(viewModel: HomeNavigationViewModel = viewModel()) {
         }
 
         composable<HomeNavigationRoutes.DetailSessionSkate> {
-            SessionDetailScreen()
+            SessionDetailScreen(onNavigateDetailCloseSession = {
+                navController.navigate(HomeNavigationRoutes.DetailSessionCloseSkate)
+
+            })
+        }
+
+
+        composable<HomeNavigationRoutes.DetailSessionCloseSkate> {
+            SessionDetailClose()
         }
 
     }

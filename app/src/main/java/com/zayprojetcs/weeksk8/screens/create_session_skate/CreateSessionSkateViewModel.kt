@@ -37,12 +37,10 @@ class CreateSessionSkateViewModel(application: Application) : AndroidViewModel(a
 
     val createSessionSkateUiStateModel: StateFlow<CreateSessionSkateUiStateModel> = combine(
         application.repoRoomGetListTrickFlow(),
-        dataStoreAppManager.deviceConnectBluetooth,
         _createSessionSkateUiStateModel
-    ) { tricksUnlock, deviceWatch, createSessionSkateUiStateModel ->
+    ) { tricksUnlock, createSessionSkateUiStateModel ->
 
         createSessionSkateUiStateModel.copy(
-            deviceWearable = deviceWatch,
             unlockTrickList = tricksUnlock
         )
     }.stateIn(
@@ -98,8 +96,11 @@ class CreateSessionSkateViewModel(application: Application) : AndroidViewModel(a
                 )
 
                 val resultSession = application.repoRoomInsertSession(roomSession = roomSession)
-                if (selectedTrickList.isNotEmpty()) {
-                    if (resultSession is OperationResult.Success) {
+
+                if (resultSession is OperationResult.Success) {
+                    dataStoreAppManager.saveCurrentIdSession(resultSession.data)
+
+                    if (selectedTrickList.isNotEmpty()) {
                         val roomTricks = selectedTrickList.map {
                             RoomTrick(
                                 realName = it.realName,
@@ -111,9 +112,8 @@ class CreateSessionSkateViewModel(application: Application) : AndroidViewModel(a
                         }
                         val resultTricks = application.repoRoomInsertListTrick(roomTricks)
                         _operationResult.emit(resultTricks)
-                    }
-
-                } else _operationResult.emit(resultSession)
+                    } else _operationResult.emit(OperationResult.Success(true))
+                }
 
             }
         }
