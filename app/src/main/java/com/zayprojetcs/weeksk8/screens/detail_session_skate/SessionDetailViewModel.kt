@@ -3,7 +3,6 @@ package com.zayprojetcs.weeksk8.screens.detail_session_skate
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.zayprojetcs.weeksk8.core.data_store.DataStoreAppManager
 import com.zayprojetcs.weeksk8.core.helper.NodeClientAppHelper
@@ -25,6 +24,7 @@ import com.zaysk8.core.helper.SessionSyncManager
 import com.zaysk8.core.helper.SyncTimestamps
 import com.zaysk8.core.model.SkateSessionPhase
 import com.zaysk8.core.model.SkateSessionStateModel
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,12 +45,11 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
     val nodeClientAppHelper by lazy { NodeClientAppHelper(application.applicationContext) }
     val sessionSyncManager by lazy { SessionSyncManager(application.applicationContext) }
 
-
     // Estado interno para almacenar los resúmenes de sensores por fase (Key: "WARMUP_1", "SKATE_1", etc.)
     private val _phaseSummaries = MutableStateFlow<Map<String, PhaseSensorSummary>>(emptyMap())
 
-    // Evita realizar peticiones duplicadas a Room para fases que ya fueron consultadas
-    private val loadedPhases = mutableSetOf<String>()
+    // Estructura de datos segura para hilos que evita peticiones duplicadas a Room
+    private val loadedPhases: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     private val _uiState = MutableStateFlow(SessionDetailUiState())
 
@@ -58,20 +57,22 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
         searchConnectedWearOs()
     }
 
-    private fun searchConnectedWearOs() {
-        // 1. Iniciamos la corrutina en el hilo principal (comportamiento por defecto de viewModelScope)
-        viewModelScope.launch {
+    /**
+     * Busca los dispositivos Wear OS conectados actualmente en la red.
+     */
+    fun refreshConnectedWearables() {
+        searchConnectedWearOs()
+    }
 
-            // UI actualiza a estado de carga en el Hilo Principal
+    private fun searchConnectedWearOs() {
+        viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                // 2. Cambiamos temporalmente a Dispatchers.IO solo para hacer la búsqueda
                 val deviceWearableConnect = withContext(Dispatchers.IO) {
                     nodeClientAppHelper.getConnectedNodes()
                 }
 
-                // 3. Al terminar withContext, regresamos automáticamente al Hilo Principal
                 _uiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
@@ -83,25 +84,12 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
                 _uiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
-                        errorMessage = e.localizedMessage ?: "Error desconocido"
+                        errorMessage = e.localizedMessage ?: "Error al buscar smartwatch conectado"
                     )
                 }
             }
         }
     }
-
-    /*val uiState2: StateFlow<SessionDetailUiState> = combine(
-        application.repoRoomGetIdSessionFlow(dataStoreAppManager.currentIdSession!!),
-        DetailSessionUiManager.sessionState,
-        _phaseSummaries,
-        _uiState
-    ) { roomSession, serviceState, phaseSummaries, uiState ->
-        mapToUiState(roomSession, serviceState, phaseSummaries, uiState)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = SessionDetailUiState(isLoading = true)
-    )*/
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<SessionDetailUiState> = dataStoreAppManager.currentIdSession
@@ -115,7 +103,7 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
                 )
             } else {
                 combine(
-                    application.repoRoomGetIdSessionFlow(sessionId),
+                    getApplication<Application>().repoRoomGetIdSessionFlow(sessionId),
                     DetailSessionUiManager.sessionState,
                     _phaseSummaries,
                     _uiState
@@ -132,6 +120,10 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
 
     fun onPermissionGranted() {
         _uiState.update { it.copy(permissionSessionGranted = true) }
+    }
+
+    fun clearUserMessage() {
+        _uiState.update { it.copy(userMessage = null) }
     }
 
     private fun mapToUiState(
@@ -165,23 +157,22 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
         }
 
         // --- DISPARAR CONSULTA DE SENSORES AL COMPLETAR CADA FASE ---
-
         if (warmupStatus == PropertyStatus.COMPLETED) {
             val phaseKey = "${SkateSessionPhase.WARMUP.name}_1"
-            loadPhaseSummary(session.idSession, phaseKey, SkateSessionPhase.WARMUP, 1)
+            checkAndLoadPhaseSummary(session.idSession, phaseKey, SkateSessionPhase.WARMUP, 1)
         }
 
         if (skateRoundsStatus == PropertyStatus.COMPLETED) {
             val totalRounds = if (serviceState.totalRounds > 0) serviceState.totalRounds else 1
             for (round in 1..totalRounds) {
                 val phaseKey = "${SkateSessionPhase.SKATE.name}_$round"
-                loadPhaseSummary(session.idSession, phaseKey, SkateSessionPhase.SKATE, round)
+                checkAndLoadPhaseSummary(session.idSession, phaseKey, SkateSessionPhase.SKATE, round)
             }
         }
 
         if (cooldownStatus == PropertyStatus.COMPLETED) {
             val phaseKey = "${SkateSessionPhase.STRETCHING.name}_1"
-            loadPhaseSummary(session.idSession, phaseKey, SkateSessionPhase.STRETCHING, 1)
+            checkAndLoadPhaseSummary(session.idSession, phaseKey, SkateSessionPhase.STRETCHING, 1)
         }
 
         return uiState.copy(
@@ -204,9 +195,23 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
             skateRoundsStatus = skateRoundsStatus,
             cooldownStatus = cooldownStatus,
             phaseSummaries = phaseSummaries,
-            permissionSessionGranted = application.getRequiredSessionPermissionsGranted(),
+            permissionSessionGranted = getApplication<Application>().getRequiredSessionPermissionsGranted(),
             isLoading = false
         )
+    }
+
+    /**
+     * Verifica de forma segura si la fase ya fue cargada antes de iniciar la corrutina de Room.
+     */
+    private fun checkAndLoadPhaseSummary(
+        sessionId: Long,
+        phaseKey: String,
+        phase: SkateSessionPhase,
+        roundNumber: Int
+    ) {
+        if (loadedPhases.contains(phaseKey)) return
+        loadedPhases.add(phaseKey)
+        loadPhaseSummary(sessionId, phaseKey, phase, roundNumber)
     }
 
     /**
@@ -218,11 +223,8 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
         phase: SkateSessionPhase,
         roundNumber: Int
     ) {
-        if (loadedPhases.contains(phaseKey)) return
-        loadedPhases.add(phaseKey)
-
         viewModelScope.launch {
-            application.repoRoomGetSensorMetrics(sessionId, phaseKey)
+            getApplication<Application>().repoRoomGetSensorMetrics(sessionId, phaseKey)
                 .map { minuteMetricsList ->
                     minuteMetricsList.toPhaseSensorSummary(
                         phase = phase,
@@ -237,20 +239,21 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    /**
+     * Prepara e inicia la sincronización de la sesión con el Wear OS seleccionado.
+     */
     fun onWearableSelected(device: DeviceWearable) = viewModelScope.launch {
         val nodeId = device.nodeId ?: return@launch
         val currentRoomSession = uiState.value.session
 
-        // 1. Determinar fase inicial y duración con valores de respaldo para evitar ceros
         val warmupSec = (currentRoomSession?.warmupMinutes ?: 5) * 60L
         val skateSec = (currentRoomSession?.totalSkateTime ?: 10) * 60L
         val restSec = (currentRoomSession?.totalRestTime ?: 2) * 60L
         val stretchingSec = (currentRoomSession?.cooldownMinutes ?: 5) * 60L
         val totalRounds = currentRoomSession?.calculatedRounds ?: 3
 
-        // Construcción del modelo asegurando `hasActiveSessionConfig = true`
         val sessionStateToSync = SkateSessionStateModel(
-            hasActiveSessionConfig = true, // CRÍTICO: Indica al reloj que existe una configuración
+            hasActiveSessionConfig = true,
             isSessionStarted = false,
             isRunning = false,
             isPaused = false,
@@ -266,13 +269,11 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
             phaseTimeRemainingSec = warmupSec
         )
 
-        // 3. Guardar en DataClient
         sessionSyncManager.updateSessionState(
             state = sessionStateToSync,
             timestamps = SyncTimestamps()
         )
 
-        // 4. Abrir la app en el reloj
         if (device.isAppInstalled) {
             nodeClientAppHelper.automaticOpenWearApp(nodeId)
         } else {
@@ -281,6 +282,49 @@ class SessionDetailViewModel(application: Application) : AndroidViewModel(applic
                 it.copy(userMessage = "Por favor, completa la instalación en tu reloj para continuar.")
             }
         }
+    }
+
+    // --- ACCIONES DE CONTROL DE SESIÓN DESDE EL MÓVIL ---
+
+    fun onStartSession() = viewModelScope.launch {
+        val currentState = DetailSessionUiManager.sessionState.value
+        val updatedState = currentState.copy(
+            isSessionStarted = true,
+            isRunning = true,
+            isPaused = false,
+            isWaitingManualStart = false
+        )
+        sessionSyncManager.updateSessionState(updatedState, SyncTimestamps())
+    }
+
+    fun onPauseSession() = viewModelScope.launch {
+        val currentState = DetailSessionUiManager.sessionState.value
+        val updatedState = currentState.copy(
+            isRunning = false,
+            isPaused = true
+        )
+        sessionSyncManager.updateSessionState(updatedState, SyncTimestamps())
+    }
+
+    fun onResumeSession() = viewModelScope.launch {
+        val currentState = DetailSessionUiManager.sessionState.value
+        val updatedState = currentState.copy(
+            isRunning = true,
+            isPaused = false
+        )
+        sessionSyncManager.updateSessionState(updatedState, SyncTimestamps())
+    }
+
+    fun onStopSession() = viewModelScope.launch {
+        val currentState = DetailSessionUiManager.sessionState.value
+        val updatedState = currentState.copy(
+            hasActiveSessionConfig = false,
+            isSessionStarted = false,
+            isRunning = false,
+            isPaused = false,
+            currentPhase = SkateSessionPhase.COMPLETED
+        )
+        sessionSyncManager.updateSessionState(updatedState, SyncTimestamps())
     }
 }
 
@@ -292,22 +336,16 @@ fun List<CombinedMinuteMetrics>.toPhaseSensorSummary(
         return PhaseSensorSummary(phase = phase, roundNumber = roundNumber)
     }
 
-    // 1. Total de pasos en la fase (suma de cada minuto)
     val totalSteps = sumOf { it.stepCount ?: 0 }
-
-    // 2. Impacto máximo registrado en cualquier minuto de la fase
     val maxGForce = mapNotNull { it.maxImpactG }.maxOrNull() ?: 0f
 
-    // 3. Promedio del giroscopio a lo largo de los minutos con datos
     val gyroValues = mapNotNull { it.avgRotationDps }
     val avgGyroscope = if (gyroValues.isNotEmpty()) gyroValues.average().toFloat() else 0f
 
-    // 4. Ganancia de elevación (Diferencia entre la altitud máxima y mínima registrada)
     val minAlt = mapNotNull { it.minRelativeAltitudeM }.minOrNull() ?: 0f
     val maxAlt = mapNotNull { it.maxRelativeAltitudeM }.maxOrNull() ?: 0f
     val elevationGain = (maxAlt - minAlt).coerceAtLeast(0f)
 
-    // 5. Puntos de la gráfica usando el índice del minuto y el pico de impacto/aceleración
     val movementPoints = map { minuteMetric ->
         SensorDataPoint(
             timestamp = minuteMetric.minuteIndex.toLong(),

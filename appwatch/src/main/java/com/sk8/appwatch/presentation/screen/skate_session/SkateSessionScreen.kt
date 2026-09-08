@@ -220,8 +220,8 @@ private fun formatSeconds(seconds: Long): String {
     val hrs = seconds / 3600
     val mins = (seconds % 3600) / 60
     val secs = seconds % 60
-    return if (hrs > 0) arrayOf(hrs, mins, secs).formatLocale("%02d:%02d:%02d")
-    else arrayOf(mins, secs).formatLocale("%02d:%02d")
+    return if (hrs > 0) "%02d:%02d:%02d".formatLocale(hrs, mins, secs)
+    else "%02d:%02d".formatLocale(mins, secs)
 }
 
 @Composable

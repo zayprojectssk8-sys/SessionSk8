@@ -31,10 +31,13 @@ data class RoomSession(
     val cooldownMinutes: Int = 0,
     val calculatedRounds: Int = 0,
     val totalSkateTime: Int = 0,
+    val roundSkateTime: Int = 0,
     val totalRestTime: Int = 0,
+    val roundRestTime: Int = 0,
     val marginMinutes: Int? = null,
     val selectedCustomTricksCount: Int = 0,
     val unlockedTricksCount: Int = 0,
+
     val trickTrackingMode: Int = 0,
     val trickOrderMode: Int = 0,
     val trickDistributionMode: Int = 0,

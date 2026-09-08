@@ -782,7 +782,11 @@ class SkateSessionService : Service() {
         if (::sensorSessionManager.isInitialized) {
             sensorSessionManager.destroy()
         }
-        DetailSessionUiManager.resetState()
+
+        if (_sessionState.value.currentPhase == SkateSessionPhase.CANCEL) {
+            DetailSessionUiManager.resetState()
+        }
+
         serviceScope.cancel()
         super.onDestroy()
     }

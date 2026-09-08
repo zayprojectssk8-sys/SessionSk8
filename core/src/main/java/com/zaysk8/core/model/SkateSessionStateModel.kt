@@ -7,7 +7,8 @@ enum class SkateSessionPhase(val displayName: String) {
     REST("Descanso"),
     EXTRA_TIME("Tiempo Extra"),
     STRETCHING("Estiramiento"),
-    COMPLETED("Finalizado")
+    COMPLETED("Finalizado"),
+    CANCEL("Cancelado")
 }
 
 data class SkateSessionStateModel(
@@ -19,6 +20,7 @@ data class SkateSessionStateModel(
     val isPaused: Boolean = false,
     val isSessionStarted: Boolean = false,
     val isWaitingManualStart: Boolean = true,
+    val isFinishRounds: Boolean = false,
 
     // Información del progreso actual
     val currentPhase: SkateSessionPhase = SkateSessionPhase.NOT_STARTED,
@@ -33,10 +35,10 @@ data class SkateSessionStateModel(
     // =========================================================================
     // CONFIGURACIÓN DE FASES (Permite al reloj saber las duraciones al avanzar)
     // =========================================================================
-    val warmupDurationSec: Long = 300L,     // 5 min por defecto
-    val skateDurationSec: Long = 600L,      // 10 min por defecto
-    val restDurationSec: Long = 180L,       // 3 min por defecto
-    val stretchingDurationSec: Long = 300L, // 5 min por defecto
+    val warmupDurationSec: Long = 0L,     // 5 min por defecto
+    val skateDurationSec: Long = 0L,      // 10 min por defecto
+    val restDurationSec: Long = 0L,       // 3 min por defecto
+    val stretchingDurationSec: Long = 0L, // 5 min por defecto
 
     // =========================================================================
     // TIMESTAMPS PARA PRECISIÓN Y SINCRONIZACIÓN BIDIRECCIONAL

@@ -2,13 +2,13 @@ package com.zayprojetcs.weeksk8.screens.detail_session_skate
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,16 +27,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.MoreTime
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Skateboarding
-import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
@@ -57,10 +53,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -75,12 +68,9 @@ import com.zayprojetcs.weeksk8.core.room.model.RoomSession
 import com.zayprojetcs.weeksk8.core.room.model.StatusSession
 import com.zayprojetcs.weeksk8.core.services.session_skate.SkateSessionService
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.module.PermissionsSessionScreen
-import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PhaseSensorSummary
 import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.PropertyStatus
-import com.zayprojetcs.weeksk8.screens.detail_session_skate.ui_state.SensorDataPoint
 import com.zayprojetcs.weeksk8.ui.customs.ScaffoldCustom
 import com.zaysk8.core.model.SkateSessionPhase
-import java.util.Locale
 
 @Composable
 fun DeviceWearableCard(
@@ -198,187 +188,6 @@ fun DeviceWearableCard(
     }
 }
 
-@Composable
-fun PhaseSensorMetricsCard(
-    metrics: PhaseSensorSummary,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "RESULTADOS DE SENSORES",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            // --- GRID DE METRICAS CLAVE (KPIs) ---
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                MetricChip(
-                    icon = Icons.AutoMirrored.Filled.DirectionsWalk,
-                    label = "Pasos",
-                    value = "${metrics.totalSteps}"
-                )
-                MetricChip(
-                    icon = Icons.Default.FlashOn,
-                    label = "Pico G",
-                    value = String.format(Locale.US, "%.1f G", metrics.maxGForce)
-                )
-                MetricChip(
-                    icon = Icons.Default.Equalizer,
-                    label = "Giro (rad/s)",
-                    value = String.format(Locale.US, "%.1f", metrics.avgGyroscope)
-                )
-                MetricChip(
-                    icon = Icons.Default.Terrain,
-                    label = "Elevación",
-                    value = String.format(Locale.US, "%.1fm", metrics.elevationGainMeters)
-                )
-            }
-
-            // --- GRÁFICA DE MOVIMIENTO / INTENSIDAD ---
-            if (metrics.movementPoints.isNotEmpty()) {
-                Text(
-                    text = "Intensidad de Movimiento",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                SensorSparklineChart(
-                    dataPoints = metrics.movementPoints,
-                    lineColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MetricChip(
-    icon: ImageVector,
-    label: String,
-    value: String
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(8.dp),
-        tonalElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Column {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SensorSparklineChart(
-    dataPoints: List<SensorDataPoint>,
-    lineColor: Color,
-    modifier: Modifier = Modifier
-) {
-    if (dataPoints.isEmpty()) return
-
-    val maxY = (dataPoints.maxOfOrNull { it.value } ?: 1f).coerceAtLeast(1f)
-    val minY = (dataPoints.minOfOrNull { it.value } ?: 0f).coerceAtMost(0f)
-
-    Box(
-        modifier = modifier
-            .background(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .padding(8.dp)
-    ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val width = size.width
-            val height = size.height
-            val pointsCount = dataPoints.size
-
-            if (pointsCount < 2) return@Canvas
-
-            val stepX = width / (pointsCount - 1)
-            val strokePath = Path()
-            val fillPath = Path()
-
-            dataPoints.forEachIndexed { index, point ->
-                val x = index * stepX
-                val normalizedY = (point.value - minY) / (maxY - minY)
-                val y = height - (normalizedY * height)
-
-                if (index == 0) {
-                    strokePath.moveTo(x, y)
-                    fillPath.moveTo(x, height)
-                    fillPath.lineTo(x, y)
-                } else {
-                    strokePath.lineTo(x, y)
-                    fillPath.lineTo(x, y)
-                }
-
-                if (index == pointsCount - 1) {
-                    fillPath.lineTo(x, height)
-                    fillPath.close()
-                }
-            }
-
-            // Gradiente traslúcido bajo la curva
-            drawPath(
-                path = fillPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        lineColor.copy(alpha = 0.35f),
-                        lineColor.copy(alpha = 0.0f)
-                    )
-                )
-            )
-
-            // Línea principal de la gráfica
-            drawPath(
-                path = strokePath,
-                color = lineColor,
-                style = Stroke(width = 2.dp.toPx())
-            )
-        }
-    }
-}
 
 @Composable
 fun SessionDetailScreen(
@@ -391,6 +200,8 @@ fun SessionDetailScreen(
 
     val activeState = uiState.activeState
     val isWaitingAction = activeState.isWaitingUserAction || !activeState.isSessionStarted
+
+    Log.wtf("kskskk", "LOGPASE ${activeState.phase}")
 
     LaunchedEffect(uiState.session?.status) {
         if (uiState.session?.status == StatusSession.CLOSED.status) {
@@ -486,6 +297,56 @@ fun SessionDetailScreen(
                     }
                 }
 
+// --- ALERTA DE ACCIÓN MANUAL ---
+                item {
+                    AnimatedVisibility(
+                        visible = activeState.isSessionStarted,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Sesión en Curso",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Text(
+                                        text = "Presiona cancelar para detener el cronómetro y finalizar la sesión.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                                Button(
+                                    onClick = {
+                                        context.cancelSkateSession()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = MaterialTheme.colorScheme.onError
+                                    )
+                                ) {
+                                    Text("CANCELAR", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // --- SECCIÓN: FASES DE LA SESIÓN ---
                 item {
                     Text(
@@ -506,8 +367,7 @@ fun SessionDetailScreen(
                             configuredTime = "${session.warmupMinutes} min",
                             status = uiState.warmupStatus,
                             phaseTimer = if (uiState.activeState.phase == SkateSessionPhase.WARMUP) uiState.formattedPhaseTimer else null,
-                            isWaitingAction = isWaitingAction,
-                            sensorSummary = uiState.phaseSummaries["WARMUP_1"]
+                            isWaitingAction = isWaitingAction
                         )
                     }
                 }
@@ -516,14 +376,13 @@ fun SessionDetailScreen(
                 item {
                     SkateRoundsContainerCard(
                         totalRounds = session.calculatedRounds,
-                        totalSkateMin = session.totalSkateTime,
-                        totalRestMin = session.totalRestTime,
+                        roundSkateMin = session.roundSkateTime,
+                        roundRestMin = session.roundRestTime,
                         currentRound = activeState.currentRound,
                         currentPhase = activeState.phase,
                         phaseTimer = uiState.formattedPhaseTimer,
                         roundsStatus = uiState.skateRoundsStatus,
-                        isWaitingAction = isWaitingAction,
-                        phaseSummaries = uiState.phaseSummaries
+                        isWaitingAction = isWaitingAction
                     )
                 }
 
@@ -552,8 +411,7 @@ fun SessionDetailScreen(
                             configuredTime = "${session.cooldownMinutes} min",
                             status = uiState.cooldownStatus,
                             phaseTimer = if (uiState.activeState.phase == SkateSessionPhase.STRETCHING) uiState.formattedPhaseTimer else null,
-                            isWaitingAction = isWaitingAction,
-                            sensorSummary = uiState.phaseSummaries["STRETCHING_1"]
+                            isWaitingAction = isWaitingAction
                         )
                     }
                 }
@@ -651,11 +509,10 @@ fun PhaseCard(
     configuredTime: String,
     status: PropertyStatus,
     phaseTimer: String?,
-    isWaitingAction: Boolean,
-    sensorSummary: PhaseSensorSummary? = null
+    isWaitingAction: Boolean
 ) {
     val isInProgress = status == PropertyStatus.IN_PROGRESS
-    val isCompleted = status == PropertyStatus.COMPLETED
+
     val cardColor =
         if (isInProgress) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
         else MaterialTheme.colorScheme.surfaceVariant
@@ -731,19 +588,6 @@ fun PhaseCard(
                 }
             }
 
-            // --- MOSTRAR RESULTADO DE SENSORES AL COMPLETAR LA FASE ---
-            AnimatedVisibility(
-                visible = isCompleted && sensorSummary != null,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    sensorSummary?.let { summary ->
-                        PhaseSensorMetricsCard(metrics = summary)
-                    }
-                }
-            }
         }
     }
 }
@@ -751,22 +595,20 @@ fun PhaseCard(
 @Composable
 fun SkateRoundsContainerCard(
     totalRounds: Int,
-    totalSkateMin: Int,
-    totalRestMin: Int,
+    roundSkateMin: Int,
+    roundRestMin: Int,
     currentRound: Int,
     currentPhase: SkateSessionPhase,
     phaseTimer: String,
     roundsStatus: PropertyStatus,
-    isWaitingAction: Boolean,
-    phaseSummaries: Map<String, PhaseSensorSummary> = emptyMap()
+    isWaitingAction: Boolean
 ) {
     val isRoundsActive = roundsStatus == PropertyStatus.IN_PROGRESS
     val isSkateActive = currentPhase == SkateSessionPhase.SKATE
     val isRestActive = currentPhase == SkateSessionPhase.REST
 
-    val roundsCount = if (totalRounds > 0) totalRounds else 1
-    val skateTimePerRoundSec = (totalSkateMin * 60) / roundsCount
-    val restTimePerRoundSec = (totalRestMin * 60) / roundsCount
+    val skateTimePerRoundSec = (roundSkateMin * 60)
+    val restTimePerRoundSec = (roundRestMin * 60)
 
     Card(
         modifier = Modifier
@@ -810,8 +652,10 @@ fun SkateRoundsContainerCard(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
+                        val textRounds =
+                            if (totalRounds == 0) "Sin limite" else "$totalRounds rondas programadas"
                         Text(
-                            text = "$roundsCount rondas programadas",
+                            text = textRounds,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -823,28 +667,28 @@ fun SkateRoundsContainerCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             // TARJETA INTERNA: RONDA DE PATINAJE INDIVIDUAL
+            val title =
+                if (totalRounds == 0) "Patinaje (Ronda $currentRound)" else "Patinaje (Ronda $currentRound/$totalRounds)"
             IndividualSubPhaseCard(
-                title = "Patinaje (Ronda $currentRound/$roundsCount)",
+                title = title,
                 icon = Icons.Default.Skateboarding,
                 configuredTime = formatMinSec(skateTimePerRoundSec),
                 isActive = isSkateActive,
-                isCompleted = roundsStatus == PropertyStatus.COMPLETED,
                 phaseTimer = if (isSkateActive) phaseTimer else null,
                 isWaitingAction = isWaitingAction,
-                sensorSummary = phaseSummaries["SKATE_$currentRound"]
             )
 
             // TARJETA INTERNA: DESCANSO DE RONDA INDIVIDUAL
-            if (totalRestMin > 0) {
+            if (roundRestMin > 0) {
+                val titleRest =
+                    if (totalRounds == 0) "Descanso (Ronda $currentRound)" else "Descanso (Ronda $currentRound/$totalRounds)"
                 IndividualSubPhaseCard(
-                    title = "Descanso (Ronda $currentRound/$roundsCount)",
+                    title = titleRest,
                     icon = Icons.Default.FitnessCenter,
                     configuredTime = formatMinSec(restTimePerRoundSec),
                     isActive = isRestActive,
-                    isCompleted = roundsStatus == PropertyStatus.COMPLETED,
                     phaseTimer = if (isRestActive) phaseTimer else null,
                     isWaitingAction = isWaitingAction,
-                    sensorSummary = phaseSummaries["REST_$currentRound"]
                 )
             }
         }
@@ -857,10 +701,8 @@ fun IndividualSubPhaseCard(
     icon: ImageVector,
     configuredTime: String,
     isActive: Boolean,
-    isCompleted: Boolean = false,
     phaseTimer: String?,
-    isWaitingAction: Boolean,
-    sensorSummary: PhaseSensorSummary? = null
+    isWaitingAction: Boolean
 ) {
     val bgColor =
         if (isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
@@ -912,19 +754,6 @@ fun IndividualSubPhaseCard(
                 }
             }
 
-            // --- GRÁFICA / MÉTRICAS EN RONDA INDIVIDUAL AL FINALIZAR ---
-            AnimatedVisibility(
-                visible = isCompleted && sensorSummary != null,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    sensorSummary?.let { summary ->
-                        PhaseSensorMetricsCard(metrics = summary)
-                    }
-                }
-            }
         }
     }
 }
@@ -993,6 +822,21 @@ fun Context.startSkateSession(sessionId: Long) {
     }
     // ContextCompat maneja automáticamente las diferencias de versión de Android (API 26+)
     ContextCompat.startForegroundService(this, intent)
+}
+
+fun Context.cancelSkateSession() {
+    val intent = Intent(this, SkateSessionService::class.java).apply {
+        action = SkateSessionService.ACTION_STOP_SESSION
+    }
+
+    try {
+        // Si el servicio ya está en ejecución, startService entrega el intent a onStartCommand directamente
+        startService(intent)
+    } catch (e: IllegalStateException) {
+        // En caso de que la app esté en segundo plano y startService sea bloqueado por el sistema,
+        // recurrimos a startForegroundService como respaldo
+        ContextCompat.startForegroundService(this, intent)
+    }
 }
 
 private fun formatMinSec(totalSeconds: Int): String {
